@@ -123,6 +123,9 @@ function Control() {
             <button type="submit">Add Secret Pass</button>
           </form>
         </div>
+            <h1 className="text-2xl font-bold">
+              Hello world
+            </h1>
       </div>
     </div>
   );
