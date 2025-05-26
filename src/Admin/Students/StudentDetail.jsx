@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation, data } from "react-router-dom";
 import style from "./StudentDetail.module.css";
 import SelectReact from "react-select";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -32,6 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { FaRegTrashAlt } from "react-icons/fa"
+import { DelateNotify, ChengeNotify, AddNotify } from "../../components/ui/Toast"
+import { ToastContainer } from "react-toastify";
+import { FiMinusCircle } from "react-icons/fi";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC94X37bt_vhaq5sFVOB_ANhZPuE6219Vo",
@@ -47,38 +51,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const database = getDatabase(app);
-
-const getCurrentMonthDates = (selectedDays) => {
-  const dates = [];
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  // Haftaning kunlari uchun mos keladigan IDlar
-  const dayMapping = {
-    du: 1, // Dushanba
-    se: 2, // Seshanba
-    chor: 3, // Chorshanba
-    pay: 4, // Payshanba
-    ju: 5, // Juma
-    shan: 6, // Shanba
-    yak: 0, // Yakshanba
-  };
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month, day);
-    const dayOfWeek = date.getDay();
-
-    // Agar `selectedDays`da kun mavjud bo'lsa, uni qo'shamiz
-    if (selectedDays.some((selectedDay) => dayMapping[selectedDay] === dayOfWeek)) {
-      dates.push(`${day} ${date.toLocaleString("en-US", { month: "short" })}`);
-    }
-  }
-
-  return dates;
-};
-
 
 const getCurrentMonth = () => {
   const now = new Date();
@@ -102,7 +74,6 @@ const StudentDetail = () => {
   const [students, setStudents] = useState(courseData);
   const [isAdd, setIsAdd] = useState(true);
   const [studentsData, setStudentsData] = useState([]);
-  const [dates, setDates] = useState(getCurrentDate());
   const [newStudentName, setNewStudentName] = useState("");
   const [newStudentNumber, setNewStudentNumber] = useState("");
   const [editingStudent, setEditingStudent] = useState(null);
@@ -112,6 +83,7 @@ const StudentDetail = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [groupsData, setGroupsData] = useState([]);
   const [groupName, setGroupName] = useState("");
+  const [OpenDelateModal, setOpenDelateModal] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Added state
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false); // To'lov modalining holati
   const [paymentAmount, setPaymentAmount] = useState(""); // To'lov miqdori
@@ -166,29 +138,6 @@ const StudentDetail = () => {
       );
   };
 
-  const deleteStudent = (studentId, studentName) => {
-    const updatedStudentsData = studentsData.filter(
-      (student) => student.id !== studentId
-    );
-    setStudentsData(updatedStudentsData);
-
-    const studentRef = ref(database, `Students/${studentName}`);
-    set(studentRef, null)
-      .then(() => {
-        console.log("Student deleted from Firebase:", studentName);
-        navigate(
-          updatedStudentsData.length > 0
-            ? `/student/${updatedStudentsData[0].id}`
-            : "/students"
-        );
-      })
-      .catch((error) =>
-        console.error("Error deleting student from Firebase:", error)
-      );
-  };
-
-
-
   const handlePayment = () => {
     if (!paymentAmount || isNaN(paymentAmount)) {
       alert("To'lov miqdorini to'g'ri kiriting!");
@@ -200,7 +149,7 @@ const StudentDetail = () => {
       style: "decimal", // Faqat raqamlarni formatlash
       minimumFractionDigits: 0,
     }).format(parseFloat(paymentAmount)); // Formatlash
-  
+
     const paymentDate = getCurrentDate(); // Hozirgi sanani olish
     const paymentTime = new Date().toLocaleTimeString("en-US", { hour12: false }); // To'lov vaqti
     const paymentData = {
@@ -210,7 +159,7 @@ const StudentDetail = () => {
       status: "To'langan",
       time: paymentTime,
     };
-  
+
 
     // To'lovni Firebase ma'lumotlar bazasiga yozish
     const paymentRef = ref(database, `Students/${student.studentName}/paymentHistory`);
@@ -222,7 +171,6 @@ const StudentDetail = () => {
         return update(ref(database, `Students/${student.studentName}`), { paymentHistory: updatedPayments }); // To'lov tarixini yangilash
       })
       .then(() => {
-        alert("To'lov muvaffaqiyatli amalga oshirildi!");
         setIsPaymentModalOpen(false);
         setPaymentAmount(""); // To'lov miqdorini tozalash
 
@@ -233,7 +181,9 @@ const StudentDetail = () => {
             const currentBalance = parseFloat(snapshot.val()) || 0; // Hozirgi balansni olish yoki 0 ga o'rnatish
             const newBalance = currentBalance + parseFloat(paymentAmount); // To'g'ri hisoblash
             update(ref(database, `Students/${student.studentName}`), { balance: newBalance }) // Balansni yangilash
-              .then(() => console.log("Student balance updated successfully"))
+              .then(() => {
+                AddNotify({AddTitle: "To'landi!"})
+              })
               .catch((error) => console.error("Error updating student balance:", error));
           })
           .catch((error) => console.error("Error fetching student balance:", error));
@@ -274,7 +224,6 @@ const StudentDetail = () => {
         return update(ref(database, `Students/${student.studentName}`), { paymentHistory: updatedPayments }); // To'lov tarixini yangilash
       })
       .then(() => {
-        alert("Pul muvaffaqiyatli qaytarildi!");
         setIsRefundModalOpen(false);
         setRefundAmount(""); // Qaytarish miqdorini tozalash
 
@@ -285,7 +234,9 @@ const StudentDetail = () => {
             const currentBalance = parseFloat(snapshot.val()) || 0; // Hozirgi balansni olish yoki 0 ga o'rnatish
             const newBalance = currentBalance - Math.abs(parseFloat(refundAmount)); // Yangi balansni hisoblash
             update(ref(database, `Students/${student.studentName}`), { balance: newBalance }) // Balansni yangilash
-              .then(() => console.log("Student balance updated successfully"))
+              .then(() => {
+                DelateNotify({DelateTitle: "Yechildi!", Icon: FiMinusCircle })
+              })
               .catch((error) => console.error("Error updating student balance:", error));
           })
           .catch((error) => console.error("Error fetching student balance:", error));
@@ -299,7 +250,7 @@ const StudentDetail = () => {
     const studentRef = ref(database, `Students`);
     onValue(studentRef, (snapshot) => {
       const data = snapshot.val();
-      setStudentsData(data ? Object.values(data) : []);
+      setStudentsData(Object.values(data || {}));
     });
 
     const groupsRef = ref(database, "Groups");
@@ -308,7 +259,6 @@ const StudentDetail = () => {
       setGroupsData(data ? Object.keys(data) : []);
     });
   }, []);
-  console.log(currentMonth);
 
   const addStudentToGroup = () => {
     // Guruhdagi kunlarni olish
@@ -348,12 +298,12 @@ const StudentDetail = () => {
         // Firebase ma'lumotlar bazasiga yozish
         update(userRef, { ...newStudentData, studentHistory: updatedHistory })
           .then(() => {
-            alert("Talaba guruhga muvaffaqiyatli qo'shildi!");
             setStudents((prevStudents) => ({
               ...prevStudents,
               ...newStudentData,
               studentHistory: updatedHistory,
             }));
+            ChengeNotify()
           })
           .catch((error) => {
             console.error("Xatolik yuz berdi: ", error);
@@ -364,6 +314,7 @@ const StudentDetail = () => {
     });
   };
 
+  const CloseDelateModal = () => setOpenDelateModal(false)
 
   const student = studentsData.find((s) => s.id === Number.parseInt(id));
 
@@ -381,13 +332,109 @@ const StudentDetail = () => {
     }
   }, [student, currentMonth]);
 
+  const handleAddGroup = () => {
+    if (!editingStudent) return;
 
+    const oldStudentName = student.studentName;
+    const newStudentName = editingStudent.studentName;
 
+    // If name hasn't changed, just update the other fields
+    if (oldStudentName === newStudentName) {
+      const studentRef = ref(
+        database,
+        `Students/${oldStudentName}`
+      );
+      update(studentRef, {
+        studentNumber: editingStudent.studentNumber,
+      })
+        .then(() => {
+          setIsEditModalOpen(false);
+          setStudents((prevStudents) => ({
+            ...prevStudents,
+            studentNumber: editingStudent.studentNumber,
+          }));
+        })
+        .catch((error) => {
+          console.error("Error updating student:", error);
+        });
+      return;
+    }
 
-  if (!student) return <h2>Student not found</h2>;
+    // If name has changed, we need to move the data to a new location
+    const oldRef = ref(database, `Students/${oldStudentName}`);
+    const newRef = ref(database, `Students/${newStudentName}`);
+
+    // First get all existing data
+    get(oldRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+
+        // Create new node with updated data
+        set(newRef, {
+          ...data,
+          studentName: newStudentName,
+          studentNumber: editingStudent.studentNumber,
+        })
+          .then(() => {
+            // Remove old node
+            remove(oldRef).then(() => {
+              setIsEditModalOpen(false);
+              // Update local state
+              setStudents((prevStudents) => ({
+                ...prevStudents,
+                studentName: newStudentName,
+                studentNumber: editingStudent.studentNumber,
+              }));
+              // Redirect to new URL with updated student name
+              navigate(`/student/${editingStudent.id}`);
+            });
+          })
+          .catch((error) => {
+            console.error("Error updating student:", error);
+          });
+      }
+    });
+  }
+
+  const handleDelateStudent = () => {
+    const student = studentsData.find((student) => student.id === Number(id))
+    console.log(student, studentsData, id);
+
+    const findStudentRef = ref(database, `Students/${student.studentName}`)
+
+    remove(findStudentRef)
+      .then(() => {
+        setOpenDelateModal(false)
+        DelateNotify()
+        navigate("/students")
+      })
+      .catch((error) => {
+        console.error(error)
+      })
+  }
+
+  if (!student) return <span>Not Found</span>
 
   return (
-    <div>
+    <>
+
+    <ToastContainer/>
+
+      {
+        OpenDelateModal ? <Modal
+          isOpen={OpenDelateModal}
+          onClose={CloseDelateModal}
+          title={"O'quvchi rostanham o'chirilsinmi?"}
+          positionTop="top-[40%]"
+          children={
+            <div className="flex justify-center items-center gap-5">
+              <Button onClick={handleDelateStudent} className="px-6 py-2 text-lg" variant="red">Ha</Button>
+              <Button onClick={() => setOpenDelateModal(false)} className="px-6 py-2 text-lg" variant="outline">Yo'q</Button>
+            </div>
+          }
+        /> : ""
+      }
+
       <SidebarPanel />
 
       <div
@@ -492,7 +539,7 @@ const StudentDetail = () => {
                 >
                   PUL QAYTARISH
                 </Button>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <Button
                     variant="outline"
                     className="w-full hover:bg-[#6365f11f] hover:border-[#393cf6]  border-[#9193f5]"
@@ -508,6 +555,15 @@ const StudentDetail = () => {
                     }}
                   >
                     <PenSquare className="h-5 w-5 text-[#6366F1]" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full hover:bg-[#6365f11f] hover:border-[#393cf6] border-[#9193f5]"
+                    onClick={() => {
+                      setOpenDelateModal(true)
+                    }}
+                  >
+                    <FaRegTrashAlt className="h-5 w-5 text-[#6366F1]" />
                   </Button>
                 </div>
               </div>
@@ -636,69 +692,7 @@ const StudentDetail = () => {
           <div className="mt-6 flex gap-3 justify-center">
             <Button
               className="bg-[#6366F1] hover:bg-[#5558DD] text-white px-8"
-              onClick={() => {
-                if (!editingStudent) return;
-
-                const oldStudentName = student.studentName;
-                const newStudentName = editingStudent.studentName;
-
-                // If name hasn't changed, just update the other fields
-                if (oldStudentName === newStudentName) {
-                  const studentRef = ref(
-                    database,
-                    `Students/${oldStudentName}`
-                  );
-                  update(studentRef, {
-                    studentNumber: editingStudent.studentNumber,
-                  })
-                    .then(() => {
-                      setIsEditModalOpen(false);
-                      setStudents((prevStudents) => ({
-                        ...prevStudents,
-                        studentNumber: editingStudent.studentNumber,
-                      }));
-                    })
-                    .catch((error) => {
-                      console.error("Error updating student:", error);
-                    });
-                  return;
-                }
-
-                // If name has changed, we need to move the data to a new location
-                const oldRef = ref(database, `Students/${oldStudentName}`);
-                const newRef = ref(database, `Students/${newStudentName}`);
-
-                // First get all existing data
-                get(oldRef).then((snapshot) => {
-                  if (snapshot.exists()) {
-                    const data = snapshot.val();
-
-                    // Create new node with updated data
-                    set(newRef, {
-                      ...data,
-                      studentName: newStudentName,
-                      studentNumber: editingStudent.studentNumber,
-                    })
-                      .then(() => {
-                        // Remove old node
-                        remove(oldRef).then(() => {
-                          setIsEditModalOpen(false);
-                          // Update local state
-                          setStudents((prevStudents) => ({
-                            ...prevStudents,
-                            studentName: newStudentName,
-                            studentNumber: editingStudent.studentNumber,
-                          }));
-                          // Redirect to new URL with updated student name
-                          navigate(`/student/${editingStudent.id}`);
-                        });
-                      })
-                      .catch((error) => {
-                        console.error("Error updating student:", error);
-                      });
-                  }
-                });
-              }}
+              onClick={handleAddGroup}
             >
               SAQLASH
             </Button>
@@ -778,7 +772,7 @@ const StudentDetail = () => {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 };
 

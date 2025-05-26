@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "../../lib/utils"; 
+import { cn } from "../../lib/utils";
 
 const Table = React.forwardRef(({ className, ...props }, ref) => (
   <div className="w-full overflow-auto">
@@ -27,7 +27,7 @@ TableFooter.displayName = "TableFooter"
 const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
-    className={cn("border-b  border-[#8080806b] transition-colors hover:bg-gray-100 active:bg-gray-100 data-[state=selected]:bg-muted", className)}
+    className={cn("border-b border-[#8080806b] transition-colors hover:bg-gray-100 active:bg-gray-100 data-[state=selected]:bg-muted", className)}
     {...props}
   />
 ))
@@ -37,7 +37,7 @@ const TableHead = React.forwardRef(({ className, ...props }, ref) => (
   <th
     ref={ref}
     className={cn(
-"h-12 px-4 text-left align-middle font-medium text-neutral-500 [&:has([role=checkbox])]:pr-0 dark:text-neutral-400",
+      "h-12 px-4 text-left align-middle font-medium text-neutral-500 [&:has([role=checkbox])]:pr-0 dark:text-neutral-400",
       className,
     )}
     {...props}

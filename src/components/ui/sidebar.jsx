@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 const Sidebar = React.forwardRef(({ className, children, ...props }, ref) => {
   return (
-    <aside ref={ref} className={cn("flex flex-col", className)} {...props}>
+    <aside ref={ref} className={cn("flex flex-col translate-x-full", className)} {...props}>
       {children}
     </aside>
   )

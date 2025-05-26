@@ -9,8 +9,9 @@
   transition: width 0.5s ease, background 0.3s ease;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
   z-index: 5;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
-
 
 .sidebarHeader {
   padding: 0 20px;
@@ -95,7 +96,6 @@
 }
 
 .dropdownMenu {
-  display: none;
   list-style-type: none;
   padding: 0;
   margin: 0;
@@ -132,9 +132,11 @@
   background-color: #6c63ff;
 }
 
-
-.dropdownMenu .dropdownIem:hover {
-  background: #575b8a;
+.dropdownItem{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
 }
 
 .dropdownToggle {
@@ -149,10 +151,17 @@
 }
 
 /* Show dropdown menu when active */
-.dropdown.active .dropdownMenu {
-  display: block;
+.dropdownMenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
 }
 
+.dropdown.active .dropdownMenu {
+  max-height: 350px;
+
+  transition: max-height 0.5s ease;
+}
 /* Sidebar collapse styles */
 .sidebar.collapsed {
   width: 80px;
@@ -195,11 +204,13 @@
   border-radius: 50%;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center;  
   cursor: pointer;
   transition: transform 0.3s ease;
-  position: absolute;
-  right: -10px;
+  position: absolute; 
+  left: -10px;
+  z-index: 10;
+  top: 20px;
 }
 
 .toggleBtn .toggleIcon {
@@ -224,4 +235,16 @@
 .navItem:hover::before {
   transform: scaleY(1);
   transform-origin: top;
+}
+
+.dropDownOpen{
+  top: 150px;
+
+  transition: top 0.2s ease;
+}
+
+.dropDownClose{
+  top: 0;
+
+  transition: top 0.3s 0.1s ease;
 }

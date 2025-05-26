@@ -23,7 +23,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-const database = getDatabase(app);
+export const database = getDatabase(app);
+
+import style from "../../Admin/PaymentArchive/PaymentArchive.module.css"
 
 import {
   Card,
@@ -131,40 +133,41 @@ const filterGroupsByDay = (groupsArray, day) => {
   });
 };
 
+const getCurrentDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function Dashboard({ data }) {
   const navigate = useNavigate();
   const [groupsData, setGroupsData] = useState([]);
   const [roomData, setRoomsData] = useState([]);
   const [leadsData, setLeadsData] = useState([]);
-  const [courseAbout, setCourseAbout] = useState([]);
+  const [CourseAbout, setCourseAbout] = useState([]);
   const [courseSchedule, setCourseSchedule] = useState([]); // Ertangi kun uchun jadval
   const [OpenModal, setOpenModal] = useState(false)
   const [StudentKeys, setStudentKeys] = useState({});
   const [TakeStudents, setTakeStudents] = useState([])
   const [SearchStudens, setSearchStudens] = useState([]);
 
-  const [FirstKey, setFirstKey] = useState("")
-  const [StudentName, setStudentName] = useState("")
+  const [DebtorStudent, setDebtorStudent] = useState([])
 
   const [PayValue, setPayValue] = useState({
     value1: "",
     value2: ""
   })
 
-  const [firstStudent, setfirstStudent] = useState({})
-
   useEffect(() => {
     const leadsRef = ref(database, "leads");
     onValue(leadsRef, (snapshot) => {
-      const data = snapshot.val
-        ();
+      const data = snapshot.val();
       const leadsArray = data ? Object.values(data) : 0;
       setLeadsData(leadsArray);
     });
   }, [])
-
-  console.log(leadsData);
-
 
   useEffect(() => {
     const groupsRef = ref(database, "Groups");
@@ -182,8 +185,6 @@ export default function Dashboard({ data }) {
       }
     });
   }, []);
-
-  console.log("Groups Data:", groupsData);
 
   useEffect(() => {
     const coursesRef = ref(database, "Courses");
@@ -243,10 +244,9 @@ export default function Dashboard({ data }) {
       startHour,
       selectedDays: group.selectedDays,
     };
-    return schedule;  
+    return schedule;
   }).filter(Boolean); // Filter out null values
 
-  console.log("Course Schedule Data:", courseScheduleData);
 
   // Populate time slots with courses
   courseScheduleData.forEach((course) => {
@@ -267,12 +267,21 @@ export default function Dashboard({ data }) {
     { month: "Iyu", revenue: 670000 },
   ];
 
-  const courseRevenue = [
-    { name: "Web Dasturlash", value: 35 },
-    { name: "Data Science", value: 25 },
-    { name: "Mobile Dasturlash", value: 20 },
-    { name: "Cloud Hisoblash", value: 20 },
-  ];
+  const courseRevenue = CourseAbout.reduce((acc, course) => {
+    const courseName = course.name || "Noma'lum Kurs"; // Kurs nomi mavjud bo'lmasa, "Noma'lum Kurs" deb belgilash
+    const courseValue = parseFloat(course.price) || 0;
+
+    // Kursni mavjud bo'lsa, qiymatini qo'shish, aks holda yangi kurs qo'shish
+    const existingCourse = acc.find((item) => item.name === courseName);
+    console.log(acc);
+    if (existingCourse) {
+      existingCourse.value += courseValue;
+    } else {
+      acc.push({ name: courseName, value: courseValue });
+    }
+
+    return acc;
+  }, []);
 
   const topPerformers = [
     {
@@ -398,6 +407,13 @@ export default function Dashboard({ data }) {
     handleShowTodayGroups();
   }, [groupsData]);
 
+  useEffect(() => {
+    const filterStudent = TakeStudents.filter((student) =>
+      student.balance.toString().slice(0, 1) === "-"
+    )
+
+    setDebtorStudent(filterStudent)
+  }, [TakeStudents])
 
   // Talabalarni qidirish funksiyasi
   const handleSearchStudent = (searchTerm) => {
@@ -431,39 +447,56 @@ export default function Dashboard({ data }) {
 
   // Talabaga to'lov qilish funksiyasi
   const handleStudentFee = () => {
-    const studentRef = ref(database, `Students/${PayValue.value2}`);
-  
-    // Bo'sh joylarni olib tashlab, raqamga aylantirish
-    const paymentAmount = parseInt(PayValue.value1.replace(/\s/g, ""), 10);
-  
-    if (isNaN(paymentAmount) || paymentAmount <= 0) {
-      console.error("To'lov miqdori noto'g'ri:", PayValue.value1);
+    if (!PayValue.value2 || !PayValue.value1) {
+      alert("To'lov miqdorini to'g'ri kiriting!");
       return;
     }
-  
-    get(studentRef).then((snapshot) => {
-      if (snapshot.exists()) {
-        const studentData = snapshot.val();
-        const currentBalance = studentData.balance || 0;
-        const updatedBalance = currentBalance + paymentAmount;
-  
-        update(studentRef, { balance: updatedBalance })
-          .then(() => {
-            setOpenModal(false);
-            setPayValue({ value1: "", value2: "" });
-            setSearchStudens([]);
-            console.log(`Balans muvaffaqiyatli yangilandi: ${updatedBalance}`);
-          })
-          .catch((error) => {
-            console.error("Firebase yozish xatosi:", error);
-          });
-      } else {
-        console.error("Talaba topilmadi:", PayValue.value2);
-      }
-    }).catch((error) => {
-      console.error("Firebase o'qish xatosi:", error);
-    });
+    else {
+      setOpenModal(false);
+
+      const formattedPaymentAmount = new Intl.NumberFormat("uz-UZ", {
+        style: "decimal",
+        minimumFractionDigits: 0,
+      }).format(parseInt(PayValue.value1.replace(/\s/g, ""), 10));
+
+      const paymentData = {
+        date: getCurrentDate(),
+        amount: `+ ${formattedPaymentAmount}`,
+        description: "To'lov qabul qilindi",
+        status: "To'langan",
+        time: new Date().toLocaleTimeString("en-US", { hour12: false }),
+      };
+
+      const paymentRef = ref(database, `Students/${PayValue.value2}/paymentHistory`);
+      get(paymentRef)
+        .then((snapshot) => {
+          const existingPayments = snapshot.val() || [];
+          const updatedPayments = [...existingPayments, paymentData];
+
+          return update(ref(database, `Students/${PayValue.value2}`), { paymentHistory: updatedPayments });
+        })
+        .then(() => {
+          setPayValue({ value1: "", value2: "" });
+          setSearchStudens([])
+          alert("To'lov muvaffaqiyatli amalga oshirildi!");
+
+          const balanceRef = ref(database, `Students/${PayValue.value2}/balance`);
+          get(balanceRef)
+            .then((snapshot) => {
+              const currentBalance = parseFloat(snapshot.val()) || 0;
+              const newBalance = currentBalance + parseInt(PayValue.value1.replace(/\s/g, ""), 10);
+
+              return update(ref(database, `Students/${PayValue.value2}`), { balance: newBalance });
+            })
+            .then(() => console.log("Student balance updated successfully"))
+            .catch((error) => console.error("Error updating student balance:", error));
+        })
+        .catch((error) => {
+          console.error("To'lovni amalga oshirishda xatolik yuz berdi:", error);
+        });
+    }
   };
+
 
   return (
     <>
@@ -481,13 +514,13 @@ export default function Dashboard({ data }) {
                   <Input
                     id="pay"
                     type="text"
-                    className="placeholder-gray-500 text-black" 
+                    className={`${style.inputSearch}`}
                     placeholder="To'lovni kiriting"
                     value={PayValue.value1}
                     onChange={(e) => {
                       const rawValue = e.target.value.replace(/\s/g, ""); // Bo'sh joylarni olib tashlash
                       if (isNaN(rawValue)) return; // Faqat raqamlarni qabul qilish
-                  
+
                       const formattedValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, " "); // Har 3 ta raqamdan keyin bo'sh joy qo'shish
                       setPayValue((prevState) => ({
                         ...prevState,
@@ -501,6 +534,7 @@ export default function Dashboard({ data }) {
                   <Input
                     id="who"
                     type="search"
+                    className={`${style.inputSearch}`}
                     placeholder="Talaba ismini qidiring..."
                     value={PayValue.value2}
                     onChange={(e) => {
@@ -571,7 +605,7 @@ export default function Dashboard({ data }) {
               <CreditCard className="w-4 h-4 mr-2" />
               To'lov qilish
             </Button>
-            <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+            <Button variant="outline" onClick={() => navigate("/paymentArchive")} className="border-green-600 text-green-600 hover:bg-green-50">
               <Receipt className="w-4 h-4 mr-2" />
               To'lovlar tarixi
             </Button>
@@ -620,7 +654,7 @@ export default function Dashboard({ data }) {
 
           <Card
             className="bg-gradient-to-br cursor-pointer from-green-50 to-green-100"
-            onClick={() => handleCardClick(groupsData[1]?.id)}
+            onClick={() => navigate("/students")}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
@@ -630,7 +664,7 @@ export default function Dashboard({ data }) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-700">
-                {data.totalStudents}
+                {TakeStudents.length}
               </div>
               <p className="text-xs text-green-600 mt-1 flex items-center">
                 <TrendingUp className="h-4 w-4 mr-1" />
@@ -648,7 +682,7 @@ export default function Dashboard({ data }) {
               <Users className="h-4 w-4 text-indigo-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-indigo-700">24</div>
+              <div className="text-2xl font-bold text-indigo-700">{groupsData.length}</div>
               <p className="text-xs text-indigo-600 mt-1 flex items-center">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 O'tgan oyga nisbatan +2 ta
@@ -656,7 +690,10 @@ export default function Dashboard({ data }) {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-amber-50 to-amber-100">
+          <Card
+            className="bg-gradient-to-br cursor-pointer from-amber-50 to-amber-100"
+            onClick={() => navigate("/debtadStudents")}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
                 Qarzdor O'quvchilar
@@ -664,7 +701,7 @@ export default function Dashboard({ data }) {
               <AlertTriangle className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-700">15</div>
+              <div className="text-2xl font-bold text-amber-700">{DebtorStudent.length}</div>
               <p className="text-xs text-amber-600 mt-1 flex items-center">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 O'tgan oyga nisbatan -3 ta
@@ -831,27 +868,33 @@ export default function Dashboard({ data }) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={courseRevenue}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {courseRevenue.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {
+                courseRevenue.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={courseRevenue}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {courseRevenue.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <span className="text-gray-600">Ma'lumot mavjud emas</span>
+                )
+              }
             </CardContent>
           </Card>
         </div>

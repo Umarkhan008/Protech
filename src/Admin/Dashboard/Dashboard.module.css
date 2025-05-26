@@ -1,0 +1,9 @@
+.input::placeholder{
+    color: #8b8b8b !important;
+}
+
+.table{
+    width: 100%;
+    background: #fff !important; 
+    box-shadow: 0px 0px 20px gray !important;
+}

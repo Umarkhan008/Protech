@@ -65,43 +65,43 @@ const countWeekdaysInMonth = (selectedDays) => {
   return count;
 };
 
-const countWeekdaysToEndOfMonth = (selectedDays, addedDate) => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const lastDay = new Date(year, month + 1, 0).getDate();
+// const countWeekdaysToEndOfMonth = (selectedDays, addedDate) => {
+//   const today = new Date();
+//   const year = today.getFullYear();
+//   const month = today.getMonth();
+//   const lastDay = new Date(year, month + 1, 0).getDate();
 
-  const dayMapping = {
-    yak: 0, // Yakshanba
-    du: 1,  // Dushanba
-    se: 2,  // Seshanba
-    chor: 3, // Chorshanba
-    pay: 4, // Payshanba
-    ju: 5,  // Juma
-    sha: 6, // Shanba
-  };
+//   const dayMapping = {
+//     yak: 0, // Yakshanba
+//     du: 1,  // Dushanba
+//     se: 2,  // Seshanba
+//     chor: 3, // Chorshanba
+//     pay: 4, // Payshanba
+//     ju: 5,  // Juma
+//     sha: 6, // Shanba
+//   };
 
-  let count = {};
-  selectedDays.forEach((day) => {
-    count[day] = 0; // Har bir kun uchun boshlang'ich qiymat
-  });
+//   let count = {};
+//   selectedDays.forEach((day) => {
+//     count[day] = 0; // Har bir kun uchun boshlang'ich qiymat
+//   });
 
-  const startDay = addedDate ? new Date(addedDate).getDate() : today.getDate();
+//   const startDay = addedDate ? new Date(addedDate).getDate() : today.getDate();
 
-  for (let day = startDay; day <= lastDay; day++) {
-    const date = new Date(year, month, day);
-    const weekday = date.getDay();
+//   for (let day = startDay; day <= lastDay; day++) {
+//     const date = new Date(year, month, day);
+//     const weekday = date.getDay();
 
-    // Agar kun `selectedDays` ichida bo'lsa, hisoblash
-    for (const [key, value] of Object.entries(dayMapping)) {
-      if (selectedDays.includes(key) && weekday === value) {
-        count[key]++;
-      }
-    }
-  }
+//     // Agar kun `selectedDays` ichida bo'lsa, hisoblash
+//     for (const [key, value] of Object.entries(dayMapping)) {
+//       if (selectedDays.includes(key) && weekday === value) {
+//         count[key]++;
+//       }
+//     }
+//   }
 
-  return count;
-};
+//   return count;
+// };
 
 const calculateRemainingDebt = (groupFee, courseFee) => {
   let remainingDebt = courseFee; // Kursning umumiy narxi
@@ -159,36 +159,36 @@ const initializeAttendance = (selectedDays, addedDate) => {
   return daysPaid;
 };
 
-const getStudentLessonDays = (selectedDays) => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth(); // Hozirgi oy
-  const lastDay = new Date(year, month + 1, 0).getDate(); // Oyning oxirgi kuni
+// const getStudentLessonDays = (selectedDays) => {
+//   const today = new Date();
+//   const year = today.getFullYear();
+//   const month = today.getMonth(); // Hozirgi oy
+//   const lastDay = new Date(year, month + 1, 0).getDate(); // Oyning oxirgi kuni
 
-  const dayMapping = {
-    yak: 0, // Yakshanba
-    du: 1,  // Dushanba
-    se: 2,  // Seshanba
-    chor: 3, // Chorshanba
-    pay: 4, // Payshanba
-    ju: 5,  // Juma
-    sha: 6, // Shanba
-  };
+//   const dayMapping = {
+//     yak: 0, // Yakshanba
+//     du: 1,  // Dushanba
+//     se: 2,  // Seshanba
+//     chor: 3, // Chorshanba
+//     pay: 4, // Payshanba
+//     ju: 5,  // Juma
+//     sha: 6, // Shanba
+//   };
 
-  const lessonDays = [];
+//   const lessonDays = [];
 
-  for (let day = 1; day <= lastDay; day++) {
-    const date = new Date(year, month, day);
-    const weekday = date.getDay(); // Haftaning kuni (0-6)
+//   for (let day = 1; day <= lastDay; day++) {
+//     const date = new Date(year, month, day);
+//     const weekday = date.getDay(); // Haftaning kuni (0-6)
 
-    // Agar kun `selectedDays` ichida bo'lsa, massivga qo'shish
-    if (selectedDays.some((key) => dayMapping[key] === weekday)) {
-      lessonDays.push(date.toISOString().split("T")[0]); // Sana (YYYY-MM-DD formatda)
-    }
-  }
+//     // Agar kun `selectedDays` ichida bo'lsa, massivga qo'shish
+//     if (selectedDays.some((key) => dayMapping[key] === weekday)) {
+//       lessonDays.push(date.toISOString().split("T")[0]); // Sana (YYYY-MM-DD formatda)
+//     }
+//   }
 
-  return lessonDays;
-};
+//   return lessonDays;
+// };
 
 const getLessonDaysWithDates = (selectedDays) => {
   if (!selectedDays || selectedDays.length === 0) {

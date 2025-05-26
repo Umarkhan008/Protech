@@ -230,7 +230,7 @@ const CourseInfo = () => {
 
             <SidebarProvider>
                 {isOpen && (
-                    <div
+                    <div        
                         className="fixed w-full h-[100vh] bg-black/50 backdrop-blur-[2px] z-30 inset-0 transition-all duration-900 ease-in-out"
                         onClick={toggleSidebar}
                     ></div>
@@ -261,6 +261,7 @@ const CourseInfo = () => {
                                     id="courseSelect"
                                     type="text"
                                     placeholder="Kurs nomi"
+                                    className={`${style.inputSearch}`}
                                     value={chengeCourse.name || ""}
                                     onChange={(e) =>
                                         setchengeCourse((prevState) => ({
@@ -275,6 +276,7 @@ const CourseInfo = () => {
                                 <Input
                                     id="coursePrice"
                                     placeholder="Narxni kiriting"
+                                    className={`${style.inputSearch}`}
                                     type="text"
                                     value={
                                         chengeCourse.price
@@ -328,6 +330,7 @@ const CourseInfo = () => {
                                     id="courseMonth"
                                     type="text"
                                     placeholder="Kurs nomi"
+                                    className={`${style.inputSearch}`}
                                     value={chengeCourse.month || ""}
                                     onChange={(e) =>
                                         setchengeCourse((prevState) => ({

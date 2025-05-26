@@ -136,6 +136,7 @@ const Course = () => {
                                     id="courseSelect"
                                     type="text"
                                     placeholder="Kurs nomi"
+                                    className={`${style.inputSearch}`}
                                     onChange={(e) =>
                                         setaddCourse((prevState) => ({
                                             ...prevState,
@@ -149,6 +150,7 @@ const Course = () => {
                                 <Input
                                     id="coursePrice"
                                     placeholder="Narxni kiriting"
+                                    className={`${style.inputSearch}`}
                                     type="text"
                                     onChange={(e) =>
                                         setaddCourse((prevState) => ({
@@ -192,6 +194,7 @@ const Course = () => {
                                     id="courseMonth"
                                     type="text"
                                     placeholder="Kurs davomiyligi"
+                                    className={`${style.inputSearch}`}
                                     onChange={(e) =>
                                         setaddCourse((prevState) => ({
                                             ...prevState,

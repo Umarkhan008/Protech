@@ -98,7 +98,6 @@ const daysOfWeek = [
 function Groups() {
   const navigate = useNavigate();
 
-  const [groups, setGroups] = useState(["Web 1", "Web 2", "Web 3"]); // Initial groups
   const [openTeacher, setOpenTeacher] = React.useState(false)
   const [valueTeacher, setValueTeacher] = React.useState("")
   const [open, setOpen] = useState(false);
@@ -107,9 +106,7 @@ function Groups() {
   const [endTime, setEndTime] = useState("");
   const [openRoom, setOpenRoom] = React.useState(false)
   const [valueRoom, setValueRoom] = React.useState("")
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAdd, setIsAdd] = useState(true);
-  const [activeDropdown, setActiveDropdown] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [coursesData, setCoursesData] = useState([]);
   const [teachersData, setTeachersData] = useState([]);
@@ -124,7 +121,6 @@ function Groups() {
   const [newStudentNumber, setNewStudentNumber] = useState("");
   const [students, setStudents] = useState([]);
   const [selectedDays, setSelectedDays] = useState([]);
-  const [editGroupData, setEditGroupData] = useState(null);
 
 
 
@@ -255,7 +251,7 @@ function Groups() {
           parseInt(group.duration.split("-")[1].split(":")[1], 10);
 
         // Kunlar to'qnashuvini tekshirish
-        const hasDayConflict = group.selectedDays.some((day) => 
+        const hasDayConflict = group.selectedDays.some((day) =>
           newGroup.selectedDays.includes(day)
         );
 
@@ -450,462 +446,465 @@ function Groups() {
 
 
   return (
-    <div>
-      <SidebarPanel />
+    <>
+      <SidebarProvider>
+        {isOpen && (
+          <div
+            className="fixed w-full h-[100vh] bg-black/50 backdrop-blur-[2px] z-30 inset-0 transition-all duration-900 ease-in-out"
+            onClick={() => {
+              setOpen(false);
+              toggleSidebar();
+            }}
+          ></div>
+        )}
+        <Sidebar
+          className={cn(
+            "fixed inset-y-0 right-0 z-50 w-[400px] border-l border-gray-300 bg-white transition-transform duration-300 ease-in-out",
+            open ? "translate-x-0" : "translate-x-full"
+          )}
+          side="right"
+          collapsible="none"
+        >
+          <SidebarHeader className="flex  items-center justify-between border border-gray-300 p-4">
+            <h2 className="text-xl font-semibold">Yangi kurs qo'shish</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setOpen(false);
+                toggleSidebar();
+              }}
+              className="rounded-full hover:bg-gray-100"
+            >
+              <X className="h-5 w-5  " />
+              <span className="sr-only">Yopish</span>
+            </Button>
+          </SidebarHeader>
 
-      <div
-        className={style.main}
-        style={{
-          marginLeft: "var(--sidebar-width, 250px)",
-          width: "var(--sidebar-width), 100%",
-          transition: "all 0.5s ease, background 0.3s ease, width 0.5s ease",
-        }}
-      >
-        <div className={style.menu}>
-          <h1>Guruhlar: </h1>
-          <div className={style.groups}>
-            {groupsData.map((group, index) => (
-              <span
-                key={index}
-                onClick={() => handleGroupClick(group.groupName, group.id)}
-              >
-                {group.groupName}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className={style.groupAbout}>
-          <h2>Guruhlar soni: {groupsData.length}</h2>
-          <SidebarProvider>
-            {isOpen && (
-              <div
-                className="fixed w-full  h-[100vh] z-30  inset-0 backdrop-blur-sm transition-all duration-900 ease-in-out"
+          <SidebarContent>
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-6 p-6 text-left"
+            >
+              <div className="space-y-6">
+                <Label htmlFor="courseName">Kurs nomi</Label>
+                <Input
+                  id="courseName"
+                  placeholder="Kurs nomini kiriting"
+                  className={`${style.inputSearch} w-full`}
+                  value={newGroupName} // Controlled input
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="courseSelect">Kursni tanlash</Label>
+                <SelectReact
+                  value={selectedOptions.courses}
+                  onChange={(selectedOption) =>
+                    handleSelectChange(selectedOption, { name: "courses" })
+                  }
+                  options={coursesData}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="teacher">O'qituvchi</Label>
+                <SelectReact
+                  value={selectedOptions.teachers}
+                  onChange={(selectedOption) =>
+                    handleSelectChange(selectedOption, { name: "teachers" })
+                  }
+                  options={teachersData}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="price">Narxi</Label>
+                <Input
+                  id="price"
+                  placeholder="Narxini kiriting"
+                  className={`${style.inputSearch} w-full`}
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label>Dars kunlari</Label>
+                <div className="flex flex-wrap gap-3">
+                  {daysOfWeek.map((day) => (
+                    <div
+                      key={day.id}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
+                        id={day.id}
+                        checked={selectedDays.includes(day.id)}
+                        onCheckedChange={() => handleDayChange(day.id)}
+                      />
+                      <Label
+                        htmlFor={day.id}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {day.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Dars vaqti</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="relative">
+                    <Input
+                      type="time"
+                      className={`${style.inputSearch} w-full pl-10`}
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      required
+                    />
+                    <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type="time"
+                      className={`${style.inputSearch} w-full pl-10`}
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      required
+                    />
+                    <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="room">Xona</Label>
+                <SelectReact
+                  value={selectedOptions.rooms}
+                  onChange={(selectedOption) =>
+                    handleSelectChange(selectedOption, { name: "rooms" })
+                  }
+                  options={roomsData}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-black hover:opacity-80 text-white"
                 onClick={() => {
                   setOpen(false);
                   toggleSidebar();
+                  addGroup();
                 }}
-              ></div>
-            )}
-            <Sidebar
-              className={cn(
-                "fixed inset-y-0 right-0 z-50 w-[400px] border-l border-gray-300 bg-white transition-transform duration-300 ease-in-out",
-                open ? "translate-x-0" : "translate-x-full"
-              )}
-              side="right"
-              collapsible="none"
-            >
-              <SidebarHeader className="flex  items-center justify-between border border-gray-300 p-4">
-                <h2 className="text-xl font-semibold">Yangi kurs qo'shish</h2>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setOpen(false);
-                    toggleSidebar();
-                  }}
-                  className="rounded-full hover:bg-gray-100"
-                >
-                  <X className="h-5 w-5  " />
-                  <span className="sr-only">Yopish</span>
-                </Button>
-              </SidebarHeader>
-
-              <SidebarContent>
-                <form
-                  onSubmit={handleSubmit}
-                  className="space-y-6 p-6 text-left "
-                >
-                  <div className="space-y-6">
-                    <Label htmlFor="courseName">Kurs nomi</Label>
-                    <Input
-                      id="courseName"
-                      placeholder="Kurs nomini kiriting"
-                      className="w-full"
-                      value={newGroupName} // Controlled input
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="courseSelect">Kursni tanlash</Label>
-                    <SelectReact
-                      value={selectedOptions.courses}
-                      onChange={(selectedOption) =>
-                        handleSelectChange(selectedOption, { name: "courses" })
-                      }
-                      options={coursesData}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="teacher">O'qituvchi</Label>
-                    <SelectReact
-                      value={selectedOptions.teachers}
-                      onChange={(selectedOption) =>
-                        handleSelectChange(selectedOption, { name: "teachers" })
-                      }
-                      options={teachersData}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Narxi</Label>
-                    <Input
-                      id="price"
-                      placeholder="Narxini kiriting"
-                      className="w-full"
-                      value={newPrice}
-                      onChange={(e) => setNewPrice(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Dars kunlari</Label>
-                    <div className="flex flex-wrap gap-3">
-                      {daysOfWeek.map((day) => (
-                        <div
-                          key={day.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={day.id}
-                            checked={selectedDays.includes(day.id)}
-                            onCheckedChange={() => handleDayChange(day.id)}
-                          />
-                          <Label
-                            htmlFor={day.id}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {day.label}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Dars vaqti</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="relative">
-                        <Input
-                          type="time"
-                          className="w-full pl-10"
-                          value={startTime}
-                          onChange={(e) => setStartTime(e.target.value)}
-                          required
-                        />
-                        <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                      </div>
-                      <div className="relative">
-                        <Input
-                          type="time"
-                          className="w-full pl-10"
-                          value={endTime}
-                          onChange={(e) => setEndTime(e.target.value)}
-                          required
-                        />
-                        <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="room">Xona</Label>
-                    <SelectReact
-                      value={selectedOptions.rooms}
-                      onChange={(selectedOption) =>
-                        handleSelectChange(selectedOption, { name: "rooms" })
-                      }
-                      options={roomsData}
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-black hover:opacity-80 text-white"
-                    onClick={() => {
-                      setOpen(false);
-                      toggleSidebar();
-                      addGroup();
-                    }}
-                  >
-                    Saqlash
-                  </Button>
-                </form>
-              </SidebarContent>
-            </Sidebar>
-          </SidebarProvider>
-          <button className={style.groupAddButton}
-            onClick={() => {
-              setOpen(true);
-              toggleSidebar();
-            }}>
-            Add Group
-          </button>
-        </div>
-
-
-        <Card className="col-[1/4] row-[4/11] border-slate-200 rounded-[5px]">
-          {groupInfo && (
-            <>
-              <CardHeader className="border-b pb-4">
-                <CardTitle>{groupInfo.groupName}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="grid gap-1">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Kurs:</span>
-                      <span className="font-medium">{groupInfo.courseName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">O'qituvchi:</span>
-                      <span className="font-medium">{groupInfo.teacherName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Narx:</span>
-                      <span className="font-medium">{groupInfo.price} UZS</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Davomiyligi:</span>
-                      <span className="font-medium">{groupInfo.schedule}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Room:</span>
-                      <span className="font-medium">{groupInfo.room}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full text-orange-500 border-orange-500 hover:bg-orange-50"
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full text-red-500 border-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={toggleModal}
-                      className="rounded-full text-blue-500 border-blue-500 hover:bg-blue-50"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="sr-only">Add</span>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </>
-          )}
-        </Card>
-
-
-
-        <div className={style.davomat}>
-          <h1>Davomat</h1>
-          <div className={style.months}>
-            {months.map((month, index) => (
-              <span
-                key={index}
-                className={month === selectedMonth ? style.active : ""}
-                onClick={() => handleMonthClick(month)}
               >
-                {month}
-              </span>
-            ))}
+                Saqlash
+              </Button>
+            </form>
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
+
+      <div>
+        <SidebarPanel />
+
+        <div
+          className={style.main}
+          style={{
+            marginLeft: "var(--sidebar-width, 250px)",
+            width: "var(--sidebar-width), 100%",
+            transition: "all 0.5s ease, background 0.3s ease, width 0.5s ease",
+          }}
+        >
+          <div className={style.menu}>
+            <h1>Guruhlar: </h1>
+            <div className={style.groups}>
+              {groupsData.map((group, index) => (
+                <span
+                  key={index}
+                  onClick={() => handleGroupClick(group.groupName, group.id)}
+                >
+                  {group.groupName}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className={style.groupAbout}>
+            <h2>Guruhlar soni: {groupsData.length}</h2>
+            <Button className={style.groupAddButton}
+              onClick={() => {
+                setOpen(true);
+                toggleSidebar();
+              }}>
+              Guruh qo'shish
+            </Button>
           </div>
 
-          <div className={style.attendanceGrid}>
-            <div className={style.header}>
-              <div className={style.nameCol}>Ism</div>
-              {dates.map((date, index) => (
-                <div key={index} className={style.dateCol}>
-                  {date}
-                </div>
+
+          <Card className="col-[1/4] row-[4/11] border-slate-200 rounded-[5px]">
+            {groupInfo && (
+              <>
+                <CardHeader className="border-b pb-4">
+                  <CardTitle>{groupInfo.groupName}</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="grid gap-1">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Kurs:</span>
+                        <span className="font-medium">{groupInfo.courseName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">O'qituvchi:</span>
+                        <span className="font-medium">{groupInfo.teacherName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Narx:</span>
+                        <span className="font-medium">{groupInfo.price} UZS</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Davomiyligi:</span>
+                        <span className="font-medium">{groupInfo.schedule}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Room:</span>
+                        <span className="font-medium">{groupInfo.room}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full text-orange-500 border-orange-500 hover:bg-orange-50"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full text-red-500 border-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={toggleModal}
+                        className="rounded-full text-blue-500 border-blue-500 hover:bg-blue-50"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span className="sr-only">Add</span>
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </>
+            )}
+          </Card>
+
+
+
+          <div className={style.davomat}>
+            <h1>Davomat</h1>
+            <div className={style.months}>
+              {months.map((month, index) => (
+                <span
+                  key={index}
+                  className={month === selectedMonth ? style.active : ""}
+                  onClick={() => handleMonthClick(month)}
+                >
+                  {month}
+                </span>
               ))}
             </div>
 
-            {students.map((student, studentIndex) => (
-              <div key={studentIndex} className={style.studentCol}>
-                <div className={style.nameCol}>{student.studentName}</div>
-                {student[`attendance`][selectedMonth] &&
-                  Array.isArray(student[`attendance`][selectedMonth]) ? (
-                  student[`attendance`][selectedMonth].map(
-                    (attendance, dateIndex) => (
-                      <div key={dateIndex} className={style.attendanceCell} x>
-                        <div
-                          className={`${style.circle} ${attendance === true
+            <div className={style.attendanceGrid}>
+              <div className={style.header}>
+                <div className={style.nameCol}>Ism</div>
+                {dates.map((date, index) => (
+                  <div key={index} className={style.dateCol}>
+                    {date}
+                  </div>
+                ))}
+              </div>
+
+              {students.map((student, studentIndex) => (
+                <div key={studentIndex} className={style.studentCol}>
+                  <div className={style.nameCol}>{student.studentName}</div>
+                  {student[`attendance`][selectedMonth] &&
+                    Array.isArray(student[`attendance`][selectedMonth]) ? (
+                    student[`attendance`][selectedMonth].map(
+                      (attendance, dateIndex) => (
+                        <div key={dateIndex} className={style.attendanceCell} x>
+                          <div
+                            className={`${style.circle} ${attendance === true
                               ? style.present
                               : attendance === false
                                 ? style.absent
                                 : ""
-                            }`}
-                        >
-                          <div className={style.hoverButtons}>
-                            <button
-                              className={style.yesBtn}
-                              onClick={() =>
-                                handleAttendance(
-                                  studentIndex,
-                                  dateIndex,
-                                  student,
-                                  true
-                                )
-                              }
-                            >
-                              Ha
-                            </button>
-                            <button
-                              className={style.noBtn}
-                              onClick={() =>
-                                handleAttendance(
-                                  studentIndex,
-                                  dateIndex,
-                                  student,
-                                  false
-                                )
-                              }
-                            >
-                              Yo'q
-                            </button>
+                              }`}
+                          >
+                            <div className={style.hoverButtons}>
+                              <button
+                                className={style.yesBtn}
+                                onClick={() =>
+                                  handleAttendance(
+                                    studentIndex,
+                                    dateIndex,
+                                    student,
+                                    true
+                                  )
+                                }
+                              >
+                                Ha
+                              </button>
+                              <button
+                                className={style.noBtn}
+                                onClick={() =>
+                                  handleAttendance(
+                                    studentIndex,
+                                    dateIndex,
+                                    student,
+                                    false
+                                  )
+                                }
+                              >
+                                Yo'q
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )
                     )
-                  )
-                ) : (
-                  <div>No attendance data available</div>
-                )}
-              </div>
-            ))}
+                  ) : (
+                    <div>No attendance data available</div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+        <Sheet>
+          <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+            <SheetHeader>
+              <SheetTitle>Yangi kurs qo'shish</SheetTitle>
+            </SheetHeader>
+            <form className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Kurs nomi</Label>
+                <Input id="title" placeholder="Kurs nomini kiriting" className={`${style.inputSearch}`} />
+              </div>
+              <div className="grid gap-2">
+                <Label>O'qituvchi</Label>
+                <Popover open={openTeacher} onOpenChange={setOpenTeacher}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={openTeacher} className="justify-between">
+                      {valueTeacher
+                        ? teachers.find((teacher) => teacher.value === valueTeacher)?.label
+                        : "O'qituvchini tanlang..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="O'qituvchi qidirish..." />
+                      <CommandList>
+                        <CommandEmpty>O'qituvchi topilmadi.</CommandEmpty>
+                        <CommandGroup>
+                          {teachers.map((teacher) => (
+                            <CommandItem
+                              key={teacher.value}
+                              value={teacher.value}
+                              onSelect={(currentValue) => {
+                                setValueTeacher(currentValue === valueTeacher ? "" : currentValue)
+                                setOpenTeacher(false)
+                              }}
+                            >
+                              <Check
+                                className={cn("mr-2 h-4 w-4", valueTeacher === teacher.value ? "opacity-100" : "opacity-0")}
+                              />
+                              {teacher.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="price">Narxi</Label>
+                <Input id="price" placeholder="Narxini kiriting" type="number" className={`${style.inputSearch}`} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Dars kunlari</Label>
+                <div className="flex flex-wrap gap-2">
+                  {weekDays.map((day) => (
+                    <div key={day.id} className="flex items-center space-x-2">
+                      <Checkbox id={day.id} />
+                      <Label htmlFor={day.id}>{day.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Dars vaqti</Label>
+                <div className="flex gap-2">
+                  <Input type="time" className={`${style.inputSearch}`} placeholder="Boshlanish vaqti" />
+                  <Input type="time" className={`${style.inputSearch}`} placeholder="Tugash vaqti" />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Xona</Label>
+                <Popover open={openRoom} onOpenChange={setOpenRoom}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={openRoom} className="justify-between">
+                      {valueRoom ? rooms.find((room) => room.value === valueRoom)?.label : "Xonani tanlang..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Xona qidirish..." />
+                      <CommandList>
+                        <CommandEmpty>Xona topilmadi.</CommandEmpty>
+                        <CommandGroup>
+                          {rooms.map((room) => (
+                            <CommandItem
+                              key={room.value}
+                              value={room.value}
+                              onSelect={(currentValue) => {
+                                setValueRoom(currentValue === valueRoom ? "" : currentValue)
+                                setOpenRoom(false)
+                              }}
+                            >
+                              <Check
+                                className={cn("mr-2 h-4 w-4", valueRoom === room.value ? "opacity-100" : "opacity-0")}
+                              />
+                              {room.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <Button type="submit" className="mt-2">
+                Saqlash
+              </Button>
+            </form>
+          </SheetContent>
+        </Sheet>
       </div>
-      <Sheet>
-        <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle>Yangi kurs qo'shish</SheetTitle>
-          </SheetHeader>
-          <form className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Kurs nomi</Label>
-              <Input id="title" placeholder="Kurs nomini kiriting" />
-            </div>
-            <div className="grid gap-2">
-              <Label>O'qituvchi</Label>
-              <Popover open={openTeacher} onOpenChange={setOpenTeacher}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={openTeacher} className="justify-between">
-                    {valueTeacher
-                      ? teachers.find((teacher) => teacher.value === valueTeacher)?.label
-                      : "O'qituvchini tanlang..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0">
-                  <Command>
-                    <CommandInput placeholder="O'qituvchi qidirish..." />
-                    <CommandList>
-                      <CommandEmpty>O'qituvchi topilmadi.</CommandEmpty>
-                      <CommandGroup>
-                        {teachers.map((teacher) => (
-                          <CommandItem
-                            key={teacher.value}
-                            value={teacher.value}
-                            onSelect={(currentValue) => {
-                              setValueTeacher(currentValue === valueTeacher ? "" : currentValue)
-                              setOpenTeacher(false)
-                            }}
-                          >
-                            <Check
-                              className={cn("mr-2 h-4 w-4", valueTeacher === teacher.value ? "opacity-100" : "opacity-0")}
-                            />
-                            {teacher.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="price">Narxi</Label>
-              <Input id="price" placeholder="Narxini kiriting" type="number" />
-            </div>
-            <div className="grid gap-2">
-              <Label>Dars kunlari</Label>
-              <div className="flex flex-wrap gap-2">
-                {weekDays.map((day) => (
-                  <div key={day.id} className="flex items-center space-x-2">
-                    <Checkbox id={day.id} />
-                    <Label htmlFor={day.id}>{day.label}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Dars vaqti</Label>
-              <div className="flex gap-2">
-                <Input type="time" placeholder="Boshlanish vaqti" />
-                <Input type="time" placeholder="Tugash vaqti" />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Xona</Label>
-              <Popover open={openRoom} onOpenChange={setOpenRoom}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={openRoom} className="justify-between">
-                    {valueRoom ? rooms.find((room) => room.value === valueRoom)?.label : "Xonani tanlang..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Xona qidirish..." />
-                    <CommandList>
-                      <CommandEmpty>Xona topilmadi.</CommandEmpty>
-                      <CommandGroup>
-                        {rooms.map((room) => (
-                          <CommandItem
-                            key={room.value}
-                            value={room.value}
-                            onSelect={(currentValue) => {
-                              setValueRoom(currentValue === valueRoom ? "" : currentValue)
-                              setOpenRoom(false)
-                            }}
-                          >
-                            <Check
-                              className={cn("mr-2 h-4 w-4", valueRoom === room.value ? "opacity-100" : "opacity-0")}
-                            />
-                            {room.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <Button type="submit" className="mt-2">
-              Saqlash
-            </Button>
-          </form>
-        </SheetContent>
-      </Sheet>
-    </div>
+    </>
   );
 }
 

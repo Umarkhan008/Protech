@@ -42,6 +42,7 @@ import { CourseSidebar } from "../../components/ui/course-sidebar";
 
 import { cn } from "../../lib/utils";
 import { duration } from "@mui/material";
+import { PiArrowUDownLeftBold } from "react-icons/pi";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC94X37bt_vhaq5sFVOB_ANhZPuE6219Vo",
@@ -59,10 +60,10 @@ const analytics = getAnalytics(app);
 const database = getDatabase(app);
 
 const days = [
-  { label: "Toq kunlar" },
-  { label: "Juft kunlar" },
-  { label: "Dam olish kuni" },
+  { label: "Toq kunlar (SPSH)" },
+  { label: "Juft kunlar (DCHJ)" },
   { label: "Har kuni" },
+  { label: "Maxsus kunlar" },
 ];
 
 const daysOfWeek = [
@@ -94,6 +95,15 @@ function GroupDetails() {
   const [newGroupName, setNewGroupName] = useState("");
   const [newPrice, setNewPrice] = useState("");
 
+  const [AddGroup, setAddGroup] = useState({
+    groupName: "",
+    courses: "",
+    teachers: "",
+    rooms: "",
+    duration: "",
+    selectedDays: [],
+  })
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [students, setStudents] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -113,7 +123,7 @@ function GroupDetails() {
 
   const getCurrentMonthDates = () => {
     console.log(groupInfo);
-    
+
     const selectedDays = groupInfo?.selectedDays || []; // Agar `selectedDays` mavjud bo'lmasa, bo'sh massivni ishlatamiz
     const dates = [];
     const pastMonths = [];
@@ -122,7 +132,7 @@ function GroupDetails() {
     const year = now.getFullYear();
     const month = now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-  
+
     // Haftaning kunlari uchun mos keladigan IDlar
     const dayMapping = {
       du: 1, // Dushanba
@@ -133,30 +143,30 @@ function GroupDetails() {
       shan: 6, // Shanba
       yak: 0, // Yakshanba
     };
-  
+
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       const dayOfWeek = date.getDay();
-  
+
       // Agar `selectedDays`da kun mavjud bo'lsa, uni qo'shamiz
       if (selectedDays.some((selectedDay) => dayMapping[selectedDay] === dayOfWeek)) {
         dates.push(`${day} ${date.toLocaleString("en-US", { month: "short" })}`);
       }
     }
-  
+
     for (let i = 5; i >= 0; i--) {
       const pastMonth = new Date(year, month - i);
       pastMonths.push(
         pastMonth.toLocaleString("en-US", { month: "long", year: "numeric" })
       );
     }
-  
+
     months.push(
       now.toLocaleString("en-US", { month: "long", year: "numeric" })
     );
-  
+
     return { dates, months, pastMonths };
-  };  
+  };
 
   const { dates, months, pastMonths } = getCurrentMonthDates();
 
@@ -177,13 +187,13 @@ function GroupDetails() {
   const handleAttendance = (studentIndex, dateIndex, student, status) => {
     const newStudents = [...students];
     const date = dates[dateIndex]; // Indeksdan sanani olamiz
-  
+
     // `attendance`ni yangilash
     if (!newStudents[studentIndex][`attendance`][selectedMonth]) {
       newStudents[studentIndex][`attendance`][selectedMonth] = {};
     }
     newStudents[studentIndex][`attendance`][selectedMonth][date] = status;
-  
+
     // Firebase'da yangilash
     const studentRef = ref(database, `Students/${student.studentName}`);
     update(studentRef, {
@@ -191,10 +201,10 @@ function GroupDetails() {
     }).catch((error) => {
       console.error("Error updating attendance in Firebase:", error);
     });
-  
+
     setStudents(newStudents);
   };
-  
+
 
   const handleMonthClick = (month) => {
     setSelectedMonth(month);
@@ -230,30 +240,30 @@ function GroupDetails() {
         rooms: selectedOptions.rooms ? selectedOptions.rooms.label : null,
         selectedDays: selectedDays, // Yangi guruhning kunlari
       };
-  
+
       // Yangi guruhning boshlanish va tugash vaqtini aniqlash
       const newGroupStartTime = parseInt(startTime.split(":")[0], 10) * 60 +
-                                parseInt(startTime.split(":")[1], 10);
+        parseInt(startTime.split(":")[1], 10);
       const newGroupEndTime = parseInt(endTime.split(":")[0], 10) * 60 +
-                              parseInt(endTime.split(":")[1], 10);
-  
+        parseInt(endTime.split(":")[1], 10);
+
       // Vaqtlar mantiqiyligini tekshirish
       if (newGroupStartTime >= newGroupEndTime) {
         alert("Boshlanish vaqti tugash vaqtidan oldin bo'lishi kerak.");
         return;
       }
-  
+
       // To'qnashuvni tekshirish
       const isConflict = groupsData.some((group) => {
         if (!group.duration || !group.rooms || !group.selectedDays) {
           return false; // Guruhda kerakli ma'lumotlar bo'lmasa, to'qnashuv yo'q
         }
-  
+
         const groupStartTime = parseInt(group.duration.split("-")[0].split(":")[0], 10) * 60 +
-                               parseInt(group.duration.split("-")[0].split(":")[1], 10);
+          parseInt(group.duration.split("-")[0].split(":")[1], 10);
         const groupEndTime = parseInt(group.duration.split("-")[1].split(":")[0], 10) * 60 +
-                             parseInt(group.duration.split("-")[1].split(":")[1], 10);
-  
+          parseInt(group.duration.split("-")[1].split(":")[1], 10);
+
         // Kunlar to'qnashuvini tekshirish
         const hasDayConflict = group.selectedDays.some((day) =>
           newGroup.selectedDays.includes(day)
@@ -264,23 +274,23 @@ function GroupDetails() {
 
 
 
-  
+
         // Vaqt to'qnashuvini tekshirish
         const hasTimeConflict =
           (newGroupStartTime < groupEndTime && newGroupEndTime > groupStartTime);
-  
+
         // Xona, vaqt va kunlar to'qnashuvini birgalikda tekshirish
         return group.rooms === newGroup.rooms && hasDayConflict && hasTimeConflict;
       });
-  
+
       if (isConflict) {
         alert("Yangi guruhning dars vaqti va xonasi mavjud guruhlar bilan to'qnash keladi.");
         return;
       }
-  
+
       // Guruhni qo'shish
       setGroupsData([...groupsData, newGroup]);
-  
+
       const newGroupRef = ref(database, `Groups/${newGroupName}`);
       set(newGroupRef, newGroup)
         .then(() => {
@@ -289,7 +299,7 @@ function GroupDetails() {
         .catch((error) => {
           console.error("Error adding group to Firebase:", error);
         });
-  
+
       // Formani tozalash
       setNewGroupName("");
       setStartTime("");
@@ -298,7 +308,7 @@ function GroupDetails() {
       setSelectedDays([]); // Kunlarni tozalash
     }
   };
-  
+
 
 
   function handleGroupClick(groupName, id) {
@@ -321,17 +331,17 @@ function GroupDetails() {
 
 
   // Sana bo'yicha `attendance` ma'lumotlarini indeks bo'yicha qayta ishlash
-const getAttendanceByIndex = (attendance, dates) => {
-  const attendanceByIndex = Array(dates.length).fill(null); // Barcha indekslarni `null` bilan to'ldiramiz
+  const getAttendanceByIndex = (attendance, dates) => {
+    const attendanceByIndex = Array(dates.length).fill(null); // Barcha indekslarni `null` bilan to'ldiramiz
 
-  dates.forEach((date, index) => {
-    if (attendance[date]) {
-      attendanceByIndex[index] = attendance[date]; // Sanaga mos keladigan qiymatni indeksga qo'yamiz
-    }
-  });
+    dates.forEach((date, index) => {
+      if (attendance[date]) {
+        attendanceByIndex[index] = attendance[date]; // Sanaga mos keladigan qiymatni indeksga qo'yamiz
+      }
+    });
 
-  return attendanceByIndex;
-};
+    return attendanceByIndex;
+  };
 
   useEffect(() => {
     const coursesRef = ref(database, "Teachers");
@@ -422,31 +432,31 @@ const getAttendanceByIndex = (attendance, dates) => {
       setSelectedDays(prev => prev.filter(d => d !== day));
       return;
     }
-  
+
     // Add the new day first
     const updatedDays = [...selectedDays, day];
-    
+
     // Check for odd days pattern (du, chor, ju)
     const oddDays = ['du', 'chor', 'ju'];
     const evenDays = ['se', 'pay', 'shan'];
-  
+
     // Check if all odd days are selected
     const selectedOddDays = updatedDays.filter(d => oddDays.includes(d));
     if (selectedOddDays.length === 3 && oddDays.includes(day)) {
       setSelectedDays([...oddDays, 'toq kunlar']); // Keep odd days selected and add label
       return;
     }
-  
+
     // Check if all even days are selected
     const selectedEvenDays = updatedDays.filter(d => evenDays.includes(d));
     if (selectedEvenDays.length === 3 && evenDays.includes(day)) {
       setSelectedDays([...evenDays, 'juft kunlar']); // Keep even days selected and add label
       return;
     }
-  
+
     setSelectedDays(updatedDays);
   };
-  
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -457,6 +467,12 @@ const getAttendanceByIndex = (attendance, dates) => {
     setIsOpen(!isOpen);
   };
 
+  const handleSelectDays = (value) => {
+    value === "Toq kunlar (SPSH)" ? setAddGroup({ ...AddGroup, selectedDays: ["Se", "Pay", "Shan"] }) :
+    value === "Juft kunlar (DCHJ)" ? setAddGroup({ ...AddGroup, selectedDays: ["Du", "Chor", "Ju"] }) :
+    value === "Har kuni" ? setAddGroup({ ...AddGroup, selectedDays: ["Du", "Se", "Chor", "Pay", "Ju", "Shan", "Yak"] }) :
+    value === "Maxsus kunlar" ? setAddGroup({ ...AddGroup, selectedDays: "Maxsus kunlar" }) : null
+  }
 
   if (!groupInfo) {
     return <div>Loading...</div>; // Ma'lumotlar yuklanayotganida yuklanishni ko'rsatish
@@ -491,7 +507,7 @@ const getAttendanceByIndex = (attendance, dates) => {
           <SidebarProvider>
             {isOpen && (
               <div
-                className="fixed w-full  h-[100vh] z-30  inset-0 backdrop-blur-sm transition-all duration-900 ease-in-out"
+                className="fixed w-full h-[100vh] z-30  inset-0 backdrop-blur-[2px] bg-black/50 transition-all duration-900 ease-in-out"
                 onClick={() => {
                   setOpen(false);
                   toggleSidebar();
@@ -507,7 +523,7 @@ const getAttendanceByIndex = (attendance, dates) => {
               collapsible="none"
             >
               <SidebarHeader className="flex  items-center justify-between border border-gray-300 p-4">
-                <h2 className="text-xl font-semibold">Yangi kurs qo'shish</h2>
+                <h2 className="text-xl font-semibold">Yangi guruh qo'shish</h2>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -528,72 +544,70 @@ const getAttendanceByIndex = (attendance, dates) => {
                   className="space-y-6 p-6 text-left "
                 >
                   <div className="space-y-6">
-                    <Label htmlFor="courseName">Kurs nomi</Label>
+                    <Label htmlFor="courseName">Guruh nomi</Label>
                     <Input
                       id="courseName"
-                      placeholder="Kurs nomini kiriting"
-                      className="w-full"
-                      value={newGroupName} // Controlled input
-                      onChange={handleInputChange}
-                      required
+                      placeholder="Guruh nomini kiriting"
+                      className={`w-full ${style.inputSearch}`}
+                      onChange={(e) => setAddGroup({ ...AddGroup, groupName: e.target.value })}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="courseSelect">Kursni tanlash</Label>
                     <SelectReact
-                      value={selectedOptions.courses}
-                      onChange={(selectedOption) =>
-                        handleSelectChange(selectedOption, { name: "courses" })
-                      }
+                      onChange={(e) => setAddGroup({ ...AddGroup, courses: e.value })}
                       options={coursesData}
+                      placeholder="Kursni tanlang"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="teacher">O'qituvchi</Label>
-                    <SelectReact  
-                      value={selectedOptions.teachers}
-                      onChange={(selectedOption) =>
-                        handleSelectChange(selectedOption, { name: "teachers" })
-                      }
+                    <SelectReact
+                      onChange={() => setAddGroup({ ...AddGroup, teachers: e.value })}
                       options={teachersData}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Narxi</Label>
-                    <Input
-                      id="price"
-                      placeholder="Narxini kiriting"
-                      className="w-full"
-                      value={newPrice}
-                      onChange={(e) => setNewPrice(e.target.value)}
-                      required
+                      placeholder="O'qitchini tanlang"
                     />
                   </div>
 
                   <div className="space-y-3">
                     <Label>Dars kunlari</Label>
                     <div className="flex flex-wrap gap-3">
-                      {daysOfWeek.map((day) => (
-                        <div
-                          key={day.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={day.id}
-                            checked={selectedDays.includes(day.id)}
-                            onCheckedChange={() => handleDayChange(day.id)}
-                          />
-                          <Label
-                            htmlFor={day.id}
-                            className="text-sm font-normal cursor-pointer"
+                      {AddGroup.selectedDays !== "Maxsus kunlar" ? <SelectReact
+                        className="w-full"
+                        placeholder="Dars kunlarini tanlang"
+                        options={days.map((day) => ({ value: day.label, label: day.label }))}
+                        onChange={(e) => handleSelectDays(e.value)}
+                      /> :
+                        <div className="w-full flex justify-start flex-col gap-3">
+                          <div
+                            className="cursor-pointer w-[30px] h-[30px] rounded-full hover:bg-gray-200 flex justify-center items-center"
+                            onClick={() => setAddGroup({ ...AddGroup, selectedDays: [] })}
                           >
-                            {day.label}
-                          </Label>
+                            <PiArrowUDownLeftBold className="text-lg" />
+                          </div>
+                          {
+                            daysOfWeek.map((day) => (
+                              <div
+                                key={day.id}
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox
+                                  id={day.id}
+                                  checked={selectedDays.includes(day.id)}
+                                  onCheckedChange={() => handleDayChange(day.id)}
+                                />
+                                <Label
+                                  htmlFor={day.id}
+                                  className="text-sm font-normal cursor-pointer"
+                                >
+                                  {day.label}
+                                </Label>
+                              </div>
+                            ))}
                         </div>
-                      ))}
+                      }
                     </div>
                   </div>
 
@@ -631,6 +645,7 @@ const getAttendanceByIndex = (attendance, dates) => {
                         handleSelectChange(selectedOption, { name: "rooms" })
                       }
                       options={roomsData}
+                      placeholder="Xona tanlang"
                     />
                   </div>
 
@@ -649,15 +664,15 @@ const getAttendanceByIndex = (attendance, dates) => {
               </SidebarContent>
             </Sidebar>
           </SidebarProvider>
-          <button
+          <Button
             className={style.groupAddButton}
             onClick={() => {
               setOpen(true);
               toggleSidebar();
             }}
           >
-            Add Group
-          </button>
+            Guruh qo'shish
+          </Button>
         </div>
         <Card className="col-[1/4] row-[4/11] border-slate-200 rounded-[5px]">
           {groupInfo && (
@@ -747,306 +762,304 @@ const getAttendanceByIndex = (attendance, dates) => {
           </div>
 
           <div className={style.attendanceGrid}>
-  <div className={style.header}>
-    <div className={style.nameCol}>Ism</div>
-    {dates.map((date, index) => (
-      <div key={index} className={style.dateCol}>
-        {date}
-      </div>
-    ))}
-  </div>
+            <div className={style.header}>
+              <div className={style.nameCol}>Ism</div>
+              {dates.map((date, index) => (
+                <div key={index} className={style.dateCol}>
+                  {date}
+                </div>
+              ))}
+            </div>
 
-  {students.map((student, studentIndex) => {
-    // Tanlangan oy uchun `attendance` ma'lumotlarini tekshirish
-    const attendanceData = student[`attendance`]?.[selectedMonth];
-    if (!attendanceData) {
-      return (
-        <div key={studentIndex} className={style.studentCol}>
-          <div className={style.nameCol}>{student.studentName}</div>
-          <div className={style.dateCol} colSpan={dates.length}>
-            <span className="text-red-500">Not Found</span>
+            {students.map((student, studentIndex) => {
+              // Tanlangan oy uchun `attendance` ma'lumotlarini tekshirish
+              const attendanceData = student[`attendance`]?.[selectedMonth];
+              if (!attendanceData) {
+                return (
+                  <div key={studentIndex} className={style.studentCol}>
+                    <div className={style.nameCol}>{student.studentName}</div>
+                    <div className={style.dateCol} colSpan={dates.length}>
+                      <span className="text-red-500">Not Found</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              const attendanceByIndex = getAttendanceByIndex(attendanceData, dates);
+
+              return (
+                <div key={studentIndex} className={style.studentCol}>
+                  <div className={style.nameCol}>{student.studentName}</div>
+
+                  {attendanceByIndex.map((attendance, dateIndex) => {
+                    const currentDate = dates[dateIndex];
+                    const today = `${new Date().getDate()} ${new Date().toLocaleString("en-US", {
+                      month: "short",
+                    })}`;
+                    const isPastDate = new Date(currentDate) < new Date(today);
+                    const isNotToday = currentDate !== today;
+
+                    return (
+                      <div key={dateIndex} className={style.attendanceCell}>
+                        <div
+                          className={`${style.circle} ${attendance === true
+                            ? style.present
+                            : attendance === false
+                              ? style.absent
+                              : ""
+                            }`}
+                        >
+                          <div className={style.hoverButtons}>
+                            <button
+                              className={style.yesBtn}
+                              onClick={() =>
+                                handleAttendance(studentIndex, dateIndex, student, true)
+                              }
+                              disabled={isPastDate || isNotToday}
+                            >
+                              Ha
+                            </button>
+                            <button
+                              className={style.noBtn}
+                              onClick={() =>
+                                handleAttendance(studentIndex, dateIndex, student, false)
+                              }
+                              disabled={isPastDate || isNotToday}
+                            >
+                              Yo'q
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
+
         </div>
-      );
-    }
+      </div>
+      <div>
+        {isEditModalOpen && (
 
-    const attendanceByIndex = getAttendanceByIndex(attendanceData, dates);
+          <div
+            className="fixed w-full h-[100vh] z-30 inset-0 backdrop-blur-[2px] bg-black/50 transition-all duration-900 ease-in-out"
+            onClick={() => {
+              closeEditModal()
+            }}
+          ></div>
+        )}
 
-    return (
-      <div key={studentIndex} className={style.studentCol}>
-        <div className={style.nameCol}>{student.studentName}</div>
+        {/* Modalning o'ngdan chiqishi */}
+        <Sidebar
+          className={cn(
+            "fixed inset-y-0 right-0 z-50 w-[400px] border-l border-gray-300 bg-white transition-transform duration-300 ease-in-out",
+            isEditModalOpen ? "translate-x-0" : "translate-x-full"
+          )}
+          side="right"
+          collapsible="none"
+        >
+          <SidebarHeader className="flex items-center justify-between border-b border-gray-300 p-4">
+            <h2 className="text-xl font-semibold">Guruhni tahrirlash</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={closeEditModal}
+              className="rounded-full hover:bg-gray-100"
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Yopish</span>
+            </Button>
+          </SidebarHeader>
 
-        {attendanceByIndex.map((attendance, dateIndex) => {
-          const currentDate = dates[dateIndex];
-          const today = `${new Date().getDate()} ${new Date().toLocaleString("en-US", {
-            month: "short",
-          })}`;
-          const isPastDate = new Date(currentDate) < new Date(today);
-          const isNotToday = currentDate !== today;
+          <SidebarContent>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
 
-          return (
-            <div key={dateIndex} className={style.attendanceCell}>
-              <div
-                className={`${style.circle} ${
-                  attendance === true
-                    ? style.present
-                    : attendance === false
-                    ? style.absent
-                    : ""
-                }`}
-              >
-                <div className={style.hoverButtons}>
-                  <button
-                    className={style.yesBtn}
-                    onClick={() =>
-                      handleAttendance(studentIndex, dateIndex, student, true)
+                const updatedGroup = {
+                  ...editGroupData,
+                  groupName: newGroupName || editGroupData.groupName,
+                  price: newPrice || editGroupData.price,
+                  duration: `${startTime || editGroupData.duration.split("-")[0]}-${endTime || editGroupData.duration.split("-")[1]
+                    }`,
+                  courses: selectedOptions.courses
+                    ? selectedOptions.courses?.label
+                    : editGroupData.courses,
+                  teachers: selectedOptions.teachers
+                    ? selectedOptions.teachers.label
+                    : editGroupData.teachers,
+                  rooms: selectedOptions.rooms
+                    ? selectedOptions.rooms.label
+                    : editGroupData.rooms,
+                  selectedDays: selectedDays.length
+                    ? selectedDays
+                    : editGroupData.selectedDays,
+                };
+
+                // Yangi guruhning boshlanish va tugash vaqtini aniqlash
+                const newGroupStartTime = parseInt(updatedGroup.duration.split("-")[0].split(":")[0], 10) * 60 +
+                  parseInt(updatedGroup.duration.split("-")[0].split(":")[1], 10);
+                const newGroupEndTime = parseInt(updatedGroup.duration.split("-")[1].split(":")[0], 10) * 60 +
+                  parseInt(updatedGroup.duration.split("-")[1].split(":")[1], 10);
+
+                // Vaqtlar mantiqiyligini tekshirish
+                if (newGroupStartTime >= newGroupEndTime) {
+                  alert("Boshlanish vaqti tugash vaqtidan oldin bo'lishi kerak.");
+                  return;
+                }
+
+                // To'qnashuvni tekshirish
+                const isConflict = groupsData.some((group) => {
+                  if (group.groupName === editGroupData.groupName) {
+                    return false; // O'zi bilan to'qnashuvni tekshirmaslik
+                  }
+
+                  if (!group.duration || !group.rooms || !group.selectedDays) {
+                    return false; // Guruhda kerakli ma'lumotlar bo'lmasa, to'qnashuv yo'q
+                  }
+
+                  const groupStartTime = parseInt(group.duration.split("-")[0].split(":")[0], 10) * 60 +
+                    parseInt(group.duration.split("-")[0].split(":")[1], 10);
+                  const groupEndTime = parseInt(group.duration.split("-")[1].split(":")[0], 10) * 60 +
+                    parseInt(group.duration.split("-")[1].split(":")[1], 10);
+
+                  // Kunlar to'qnashuvini tekshirish
+                  const hasDayConflict = group.selectedDays.some((day) =>
+                    updatedGroup.selectedDays.includes(day)
+                  );
+
+                  // Vaqt to'qnashuvini tekshirish
+                  const hasTimeConflict =
+                    (newGroupStartTime < groupEndTime && newGroupEndTime > groupStartTime);
+
+                  // Xona, vaqt va kunlar to'qnashuvini birgalikda tekshirish
+                  return group.rooms === updatedGroup.rooms && hasDayConflict && hasTimeConflict;
+                });
+
+                if (isConflict) {
+                  alert("Guruhning dars vaqti va xonasi boshqa guruhlar bilan to'qnash keladi.");
+                  return;
+                }
+
+                // Firebase'da guruhni yangilash
+                handleGroupUpdate(updatedGroup);
+              }}
+              className="space-y-6 p-6 text-left"
+            >
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="editGroupName">Guruh nomi</Label>
+                  <Input
+                    id="editGroupName"
+                    placeholder="Guruh nomini kiriting"
+                    defaultValue={editGroupData?.groupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editPrice">Narxi</Label>
+                  <Input
+                    id="editPrice"
+                    placeholder="Narxini kiriting"
+                    defaultValue={editGroupData?.price}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editCourse">Kursni tanlash</Label>
+                  <SelectReact
+                    value={
+                      selectedOptions.courses ||
+                      coursesData.find((course) => course.label === editGroupData?.courses) ||
+                      null
                     }
-                    disabled={isPastDate || isNotToday}
-                  >
-                    Ha
-                  </button>
-                  <button
-                    className={style.noBtn}
-                    onClick={() =>
-                      handleAttendance(studentIndex, dateIndex, student, false)
+                    onChange={(selectedOption) =>
+                      handleSelectChange(selectedOption, { name: "courses" })
                     }
-                    disabled={isPastDate || isNotToday}
-                  >
-                    Yo'q
-                  </button>
+                    options={coursesData}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editTeacher">O'qituvchi</Label>
+                  <SelectReact
+                    value={
+                      selectedOptions.teachers ||
+                      teachersData.find((teacher) => teacher.label === editGroupData?.teachers) ||
+                      null
+                    }
+                    onChange={(selectedOption) =>
+                      handleSelectChange(selectedOption, { name: "teachers" })
+                    }
+                    options={teachersData}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editRoom">Xona</Label>
+                  <SelectReact
+                    value={
+                      selectedOptions.rooms ||
+                      roomsData.find((room) => room.label === editGroupData?.rooms) ||
+                      null
+                    }
+                    onChange={(selectedOption) =>
+                      handleSelectChange(selectedOption, { name: "rooms" })
+                    }
+                    options={roomsData}
+                  />
+                </div>
+                <div>
+                  <Label>Dars vaqti</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      type="time"
+                      defaultValue={editGroupData?.duration.split("-")[0]}
+                      onChange={(e) => setStartTime(e.target.value)}
+                    />
+                    <Input
+                      type="time"
+                      defaultValue={editGroupData?.duration.split("-")[1]}
+                      onChange={(e) => setEndTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Dars kunlari</Label>
+                  <div className="flex flex-wrap gap-3">
+                    {daysOfWeek.map((day) => (
+                      <div key={day.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={day.id}
+                          checked={
+                            selectedDays.includes(day.id) ||
+                            (editGroupData?.selectedDays &&
+                              editGroupData.selectedDays.includes(day.id))
+                          }
+                          onCheckedChange={() => handleDayChange(day.id)}
+                        />
+                        <Label htmlFor={day.id}>{day.label}</Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  })}
-</div>
-
-        </div>
-      </div>
-        <div>
-    {isEditModalOpen && (
-
-      <div
-      className="fixed w-full  h-[100vh] z-30  inset-0 backdrop-blur-sm transition-all duration-900 ease-in-out"
-      onClick={() => {
-        closeEditModal()
-        }}
-              ></div>
-            )}
-
-          {/* Modalning o'ngdan chiqishi */}
-          <Sidebar
-      className={cn(
-        "fixed inset-y-0 right-0 z-50 w-[400px] border-l border-gray-300 bg-white transition-transform duration-300 ease-in-out",
-        isEditModalOpen ? "translate-x-0" : "translate-x-full"
-      )}
-      side="right"
-      collapsible="none"
-    >
-      <SidebarHeader className="flex items-center justify-between border-b border-gray-300 p-4">
-        <h2 className="text-xl font-semibold">Guruhni tahrirlash</h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={closeEditModal}
-          className="rounded-full hover:bg-gray-100"
-        >
-          <X className="h-5 w-5" />
-          <span className="sr-only">Yopish</span>
-        </Button>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-
-            const updatedGroup = {
-              ...editGroupData,
-              groupName: newGroupName || editGroupData.groupName,
-              price: newPrice || editGroupData.price,
-              duration: `${startTime || editGroupData.duration.split("-")[0]}-${
-                endTime || editGroupData.duration.split("-")[1]
-              }`,
-              courses: selectedOptions.courses
-                ? selectedOptions.courses?.label
-                : editGroupData.courses,
-              teachers: selectedOptions.teachers
-                ? selectedOptions.teachers.label
-                : editGroupData.teachers,
-              rooms: selectedOptions.rooms
-                ? selectedOptions.rooms.label
-                : editGroupData.rooms,
-              selectedDays: selectedDays.length
-                ? selectedDays
-                : editGroupData.selectedDays,
-            };
-
-            // Yangi guruhning boshlanish va tugash vaqtini aniqlash
-            const newGroupStartTime = parseInt(updatedGroup.duration.split("-")[0].split(":")[0], 10) * 60 +
-                                      parseInt(updatedGroup.duration.split("-")[0].split(":")[1], 10);
-            const newGroupEndTime = parseInt(updatedGroup.duration.split("-")[1].split(":")[0], 10) * 60 +
-                                    parseInt(updatedGroup.duration.split("-")[1].split(":")[1], 10);
-
-            // Vaqtlar mantiqiyligini tekshirish
-            if (newGroupStartTime >= newGroupEndTime) {
-              alert("Boshlanish vaqti tugash vaqtidan oldin bo'lishi kerak.");
-              return;
-            }
-
-            // To'qnashuvni tekshirish
-            const isConflict = groupsData.some((group) => {
-              if (group.groupName === editGroupData.groupName) {
-                return false; // O'zi bilan to'qnashuvni tekshirmaslik
-              }
-
-              if (!group.duration || !group.rooms || !group.selectedDays) {
-                return false; // Guruhda kerakli ma'lumotlar bo'lmasa, to'qnashuv yo'q
-              }
-
-              const groupStartTime = parseInt(group.duration.split("-")[0].split(":")[0], 10) * 60 +
-                                     parseInt(group.duration.split("-")[0].split(":")[1], 10);
-              const groupEndTime = parseInt(group.duration.split("-")[1].split(":")[0], 10) * 60 +
-                                   parseInt(group.duration.split("-")[1].split(":")[1], 10);
-
-              // Kunlar to'qnashuvini tekshirish
-              const hasDayConflict = group.selectedDays.some((day) =>
-                updatedGroup.selectedDays.includes(day)
-              );
-
-              // Vaqt to'qnashuvini tekshirish
-              const hasTimeConflict =
-                (newGroupStartTime < groupEndTime && newGroupEndTime > groupStartTime);
-
-              // Xona, vaqt va kunlar to'qnashuvini birgalikda tekshirish
-              return group.rooms === updatedGroup.rooms && hasDayConflict && hasTimeConflict;
-            });
-
-            if (isConflict) {
-              alert("Guruhning dars vaqti va xonasi boshqa guruhlar bilan to'qnash keladi.");
-              return;
-            }
-
-            // Firebase'da guruhni yangilash
-            handleGroupUpdate(updatedGroup);
-          }}
-          className="space-y-6 p-6 text-left"
-        >
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="editGroupName">Guruh nomi</Label>
-              <Input
-                id="editGroupName"
-                placeholder="Guruh nomini kiriting"
-                defaultValue={editGroupData?.groupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="editPrice">Narxi</Label>
-              <Input
-                id="editPrice"
-                placeholder="Narxini kiriting"
-                defaultValue={editGroupData?.price}
-                onChange={(e) => setNewPrice(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="editCourse">Kursni tanlash</Label>
-              <SelectReact
-                value={
-                  selectedOptions.courses ||
-                  coursesData.find((course) => course.label === editGroupData?.courses) ||
-                  null
-                }
-                onChange={(selectedOption) =>
-                  handleSelectChange(selectedOption, { name: "courses" })
-                }
-                options={coursesData}
-              />
-            </div>
-            <div>
-              <Label htmlFor="editTeacher">O'qituvchi</Label>
-              <SelectReact
-                value={
-                  selectedOptions.teachers ||
-                  teachersData.find((teacher) => teacher.label === editGroupData?.teachers) ||
-                  null
-                }
-                onChange={(selectedOption) =>
-                  handleSelectChange(selectedOption, { name: "teachers" })
-                }
-                options={teachersData}
-              />
-            </div>
-            <div>
-              <Label htmlFor="editRoom">Xona</Label>
-              <SelectReact
-                value={
-                  selectedOptions.rooms ||
-                  roomsData.find((room) => room.label === editGroupData?.rooms) ||
-                  null
-                }
-                onChange={(selectedOption) =>
-                  handleSelectChange(selectedOption, { name: "rooms" })
-                }
-                options={roomsData}
-              />
-            </div>
-            <div>
-              <Label>Dars vaqti</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  type="time"
-                  defaultValue={editGroupData?.duration.split("-")[0]}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
-                <Input
-                  type="time"
-                  defaultValue={editGroupData?.duration.split("-")[1]}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
+              <div className="mt-6 flex justify-end space-x-4">
+                <Button
+                  variant="outline"
+                  onClick={closeEditModal}
+                  className="text-gray-600"
+                >
+                  Bekor qilish
+                </Button>
+                <Button type="submit" className="bg-blue-600 text-white">
+                  Saqlash
+                </Button>
               </div>
-            </div>
-            <div>
-              <Label>Dars kunlari</Label>
-              <div className="flex flex-wrap gap-3">
-                {daysOfWeek.map((day) => (
-                  <div key={day.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={day.id}
-                      checked={
-                        selectedDays.includes(day.id) ||
-                        (editGroupData?.selectedDays &&
-                          editGroupData.selectedDays.includes(day.id))
-                      }
-                      onCheckedChange={() => handleDayChange(day.id)}
-                    />
-                    <Label htmlFor={day.id}>{day.label}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="mt-6 flex justify-end space-x-4">
-            <Button
-              variant="outline"
-              onClick={closeEditModal}
-              className="text-gray-600"
-            >
-              Bekor qilish
-            </Button>
-            <Button type="submit" className="bg-blue-600 text-white">
-              Saqlash
-            </Button>
-          </div>
-        </form>
-      </SidebarContent>
-    </Sidebar>
-    </div>
+            </form>
+          </SidebarContent>
+        </Sidebar>
+      </div>
     </div>
   );
 }
