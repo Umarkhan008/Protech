@@ -12,6 +12,9 @@ import { Badge } from "../components/ui/badge"
 import { Pie, PieChart, ResponsiveContainer, Cell, Legend, Tooltip } from "recharts"
 import { UserPlus, Users, Trash2, X, UserCheck } from "lucide-react"
 import SelectReact from "react-select"
+import { PiArrowUDownLeftBold } from "react-icons/pi";
+import { FaChevronDown, FaChevronRight } from "react-icons/fa"
+import { AddNotify, DelateNotify } from "../components/ui/Toast"
 
 import {
   Sidebar,
@@ -21,7 +24,6 @@ import {
 } from "../components/ui/sidebar";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
 import {
   getDatabase,
   ref,
@@ -32,7 +34,8 @@ import {
   update
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 import { Modal } from "../components/ui/modal"
-import { cn } from "../lib/utils"
+import { useNavigate } from "react-router-dom"
+import { ToastContainer } from "react-toastify"
 
 const firebaseConfig = {
   apiKey: "AIzaSyC94X37bt_vhaq5sFVOB_ANhZPuE6219Vo",
@@ -49,25 +52,18 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-const statusColors = {
-  Yangi: "bg-blue-500",
-  Qiziqgan: "bg-yellow-500",
-  Kutilmoqda: "bg-purple-500",
-  Yopilgan: "bg-green-500",
+const StatusColors = {
+  Oqiyabdi: "bg-[#2F871C]",
+  Kelmadi: "bg-[#8B0B0B]",
+  Kutyabdi: "bg-[#FFBB28]",
+  KelibKetdi: "bg-[#717171]"
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"]
+const Status = ["O'qiyabdi", "Kelmadi", "Kutyabdi", "Kelib ketdi"]
 
-const courses = [
-  "Web dasturlash",
-  "Data Science",
-  "Mobile dasturlash",
-  "UI/UX dizayn",
-  "Python",
-  "Java",
-  "JavaScript",
-  "React",
-]
+const SourceCOLORS = ["#0088FE", "#CE7878", "#7cbefb", "#FFBB28", "#00C49F", "#FF8042", "#2F871C"]
+const statusColors = ["#2F871C", "#8B0B0B", "#FFBB28", "#717171"]
+
 const getCurrentMonth = () => {
   const now = new Date();
   return now.toLocaleString("en-US", { month: "long", year: "numeric" }); // Masalan: "April 2025"
@@ -142,10 +138,12 @@ const countWeekdaysToEndOfMonth = (selectedDays, startDate) => {
 };
 
 export default function LeadsPage() {
+  const navigate = useNavigate()
   const [leads, setLeads] = useState([])
   const [Students, setStudents] = useState([])
   const [GroupData, setGroupData] = useState([]);
   const [teachersData, setTeachersData] = useState([]);
+  const [GetCourse, setGetCourse] = useState([])
   const [roomsData, setRoomsData] = useState([]);
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth())
   const [newUser, setnewUser] = useState({})
@@ -154,7 +152,10 @@ export default function LeadsPage() {
   const [firstInformation, setfirstInformation] = useState({})
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
-
+  const [openDelateModal, setopenDelateModal] = useState(false)
+  const [delateLead, setdelateLead] = useState("")
+  const [OpenChengeStatus, setOpenChengeStatus] = useState(null)
+  const [OpenChengeCourse, setOpenChengeCourse] = useState(null)
 
   const [tabs, setTabs] = useState("add")
 
@@ -219,6 +220,12 @@ export default function LeadsPage() {
       }));
       setRoomsData(roomData);
     });
+
+    const CourseRef = ref(database, "Courses")
+    onValue(CourseRef, (snapshot) => {
+      const data = snapshot.val()
+      setGetCourse(Object.values(data || {}))
+    })
   }, []);
 
   useEffect(() => {
@@ -308,7 +315,7 @@ export default function LeadsPage() {
   const [newLead, setNewLead] = useState({
     name: "",
     phone: "",
-    status: "Yangi",
+    status: "Kutyabdi",
     source: "",
     course: "",
     time: "",
@@ -341,10 +348,6 @@ export default function LeadsPage() {
     setNewLead({ ...newLead, phone: formattedNumber });
   };
 
-  const handleStatusChange = (value) => {
-    setNewLead({ ...newLead, status: value })
-  }
-
   const handleSourceChange = (value) => {
     setNewLead({ ...newLead, source: value })
   }
@@ -360,7 +363,7 @@ export default function LeadsPage() {
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    if ((newLead.name && newLead.phone && newLead.status && newLead.source && newLead.course && newLead.time) === "") {
+    if ((newLead.name && newLead.phone && newLead.source && newLead.course && newLead.time) === "") {
       alert("Iltimos barcha maydonlarni to'ldiring")
       return
     }
@@ -380,8 +383,10 @@ export default function LeadsPage() {
       time: newLead.time,
       date: date
     })
-
-    setNewLead({ name: "", phone: "", status: "Yangi", time: "", notes: "" })
+      .then(() => {
+        AddNotify()
+        setNewLead({ name: "", phone: "", status: "Kutyabdi", time: "", notes: "" })
+      })
   }
 
 
@@ -393,6 +398,12 @@ export default function LeadsPage() {
     const leadRef = ref(database, `leads/${name}`);
 
     remove(leadRef)
+      .then(() => {
+        setopenDelateModal(false)
+      })
+      .catch((error) => {
+        console.error(error)
+      })
   }
 
   // add to group
@@ -403,7 +414,7 @@ export default function LeadsPage() {
     }
     const date = new Date().toISOString().split("T")[0]; // Qo'shilgan sana
     const today = new Date(); // Bugungi sana
-  
+
     // Guruh ma'lumotlarini olish
     const groupRef = ref(database, `Groups/${selectedOptions.groups.label}`);
     get(groupRef)
@@ -412,14 +423,14 @@ export default function LeadsPage() {
           const groupData = groupSnapshot.val();
           const courseFee = groupData.price || 0; // Guruh narxi
           const selectedDays = groupData.selectedDays || []; // Guruh dars kunlari
-  
+
           // Oy oxirigacha bo'lgan dars kunlarini hisoblash
           const remainingLessonDays = countWeekdaysToEndOfMonth(selectedDays, today);
           const remainingLessonDaysCount = Object.values(remainingLessonDays).reduce(
             (sum, count) => sum + count,
             0
           );
-  
+
           // Har bir dars uchun narxni hisoblash
           const totalLessonDays = countWeekdaysInMonth(selectedDays, today);
           const totalLessonDaysCount = Object.values(totalLessonDays).reduce(
@@ -427,10 +438,10 @@ export default function LeadsPage() {
             0
           );
           const perLessonCost = courseFee / totalLessonDaysCount;
-  
+
           // Qolgan dars kunlari uchun umumiy to'lovni hisoblash
           const totalDeduction = Math.round(perLessonCost * remainingLessonDaysCount);
-  
+
           // Studentni Firebase-ga qo'shish
           set(ref(database, `Students/${newUser.name}`), {
             attendance: {
@@ -438,7 +449,8 @@ export default function LeadsPage() {
                 _empty: true,
               },
             },
-            id: Students.length,
+            id: Students.length + 1
+            ,
             balance: 0, // Boshlang'ich balansni 0 qilib qo'yamiz
             group: selectedOptions.groups.label,
             studentName: newUser.name,
@@ -454,15 +466,21 @@ export default function LeadsPage() {
                 description: `${newUser.name} ${selectedOptions.groups.label} guruhiga qo'shildi.`,
               },
             ],
-          });
-  
-          console.log(
-            `Student ${newUser.name} added to group ${selectedOptions.groups.label} with per lesson cost: ${perLessonCost}`
-          );
-  
+            paymentHistory: []
+          })
+            .then(() => {
+              handleDeleteLead(newUser.name)
+              setIsOpen(false)
+              AddNotify()
+            })
+            .catch((error) => {
+              console.error(error)
+            })
+
+
           // Leadni Firebase-dan o'chirish
-          handleDeleteLead(newUser.name);
-        } else {
+        }
+        else {
           console.error("Group data not found in Firebase.");
         }
       })
@@ -492,21 +510,69 @@ export default function LeadsPage() {
   }
 
   const CloseModal = () => setopenModal(false)
+  const closeDelateModal = () => setopenDelateModal(false)
 
-  const sourceVebSayt = leads.filter((leads) => leads.source === "Veb-sayt")
+  const sourceKochadan = leads.filter((leads) => leads.source === "Ko'chadan")
   const sourceInstagram = leads.filter((leads) => leads.source === "Instagram")
-  const sourceFacebook = leads.filter((leads) => leads.source === "Facebook")
-  const sourceGoogle = leads.filter((leads) => leads.source === "Google")
+  const sourceTelegram = leads.filter((leads) => leads.source === "Telegram")
+  const sourceShtender = leads.filter((leads) => leads.source === "Shtender")
+  const sourceTanish = leads.filter((leads) => leads.source === "Tanish")
   const sourceTavsiya = leads.filter((leads) => leads.source === "Tavsiya")
+  const sourceReklama = leads.filter((leads) => leads.source === "Reklama")
 
   // source data for pie chart
   const sourceData = [
-    { name: "Veb-sayt", value: sourceVebSayt.length },
+    { name: "Ko'chadan", value: sourceKochadan.length },
     { name: "Instagram", value: sourceInstagram.length },
-    { name: "Facebook", value: sourceFacebook.length },
-    { name: "Google", value: sourceGoogle.length },
+    { name: "Telegram", value: sourceTelegram.length },
+    { name: "Shtender", value: sourceShtender.length },
+    { name: "Tanish", value: sourceTanish.length },
     { name: "Tavsiya", value: sourceTavsiya.length },
+    { name: "Reklama", value: sourceReklama.length },
   ]
+
+  const statusOqimoqda = leads.filter((lead) => lead.status === "O'qiyabdi")
+  const statusKelmadi = leads.filter((lead) => lead.status === "Kelmadi")
+  const statusKutyabdi = leads.filter((lead) => lead.status === "Kutyabdi")
+  const statusQaytdi = leads.filter((lead) => lead.status === "Kelib ketdi")
+
+  // status data for pie chart
+  const statusData = [
+    { name: "O'qiyabdi", value: statusOqimoqda.length },
+    { name: "Kelmadi", value: statusKelmadi.length },
+    { name: "Kutyabdi", value: statusKutyabdi.length },
+    { name: "Kelib ketdi", value: statusQaytdi.length },
+  ]
+
+  const toggleDelateLead = (name) => {
+    setopenDelateModal(true)
+    setdelateLead(name)
+  }
+
+  const handleChengeStatus = (status, name) => {
+    const chengeLead = ref(database, `leads/${name}/status`)
+
+    set(chengeLead, status)
+      .then(() => {
+        console.log("secses")
+      })
+      .catch((error) => {
+        console.error(error)
+      })
+  }
+
+  const handleChengeCourse = (course, name) => {
+    const chengeLead = ref(database, `leads/${name}/course`)
+
+    set(chengeLead, course)
+      .then(() => {
+        console.log("secses")
+      })
+      .catch((error) => {
+        console.error(error)
+      })
+  }
+
 
   return (
     <>
@@ -547,6 +613,23 @@ export default function LeadsPage() {
           </div>
         }
       /> : ""}
+
+      {
+        openDelateModal ? <Modal
+          isOpen={openDelateModal}
+          onClose={closeDelateModal}
+          positionTop={"top-[40%]"}
+          title={"Bu lead ni rostanham o'chirilsinmi?"}
+          children={
+            <div className="flex justify-center items-center gap-5">
+              <Button className="px-7 text-lg" variant="red" onClick={() => { handleDeleteLead(delateLead), DelateNotify() }}>Ha</Button>
+              <Button className="px-7 text-lg" variant="outline" onClick={() => setopenDelateModal(false)}>Yo'q</Button>
+            </div>
+          }
+        /> : ""
+      }
+
+      <ToastContainer />
 
       <SidebarProvider>
         {isOpen && (
@@ -617,8 +700,15 @@ export default function LeadsPage() {
       </SidebarProvider>
 
       <div className={`container mx-auto p-4 space-y-8`}>
-
-        <h1 className="text-3xl font-bold mb-4">Lidlar boshqaruvi</h1>
+        <div className="icon flex flex-col gap-2">
+          <div
+            className="cursor-pointer w-[30px] h-[30px] rounded-full hover:bg-gray-200 flex justify-center items-center"
+            onClick={() => navigate("/panel")}
+          >
+            <PiArrowUDownLeftBold className="text-lg" />
+          </div>
+          <h1 className="text-3xl font-bold mb-4">Lidlar boshqaruvi</h1>
+        </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
@@ -631,12 +721,33 @@ export default function LeadsPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Yangi Lidlar</CardTitle>
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{leads.filter((lead) => lead.status === "Yangi").length}</div>
+            <CardContent className="pt-5">
+              <h3 className="text-2xl font-medium">
+                Lidlar holati
+              </h3>
+              {statusData.every((data) => data.value === 0) ? ( // Agar barcha value 0 bo'lsa
+                <div className="text-lg text-center text-gray-500">Ma'lumot yo'q</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={statusColors[index % statusColors.length]} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -645,9 +756,9 @@ export default function LeadsPage() {
             </CardHeader>
             <CardContent>
               {sourceData.every((data) => data.value === 0) ? ( // Agar barcha value 0 bo'lsa
-                <div className="text-center text-gray-500">Ma'lumot yo'q</div>
+                <div className="text-lg text-center text-gray-500">Ma'lumot yo'q</div>
               ) : (
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie
                       data={sourceData}
@@ -659,7 +770,7 @@ export default function LeadsPage() {
                       dataKey="value"
                     >
                       {sourceData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={SourceCOLORS[index % SourceCOLORS.length]} />
                       ))}
                     </Pie>
                     <Legend />
@@ -679,25 +790,25 @@ export default function LeadsPage() {
         >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger
-              className={`${tabs === "list"
-                  ? "bg-black text-white rounded-md h-full flex items-center justify-center"
-                  : "h-full flex items-center justify-center"
-                }`}
-              value="list"
-            >
-              Lidlar ro'yxati
-            </TabsTrigger>
-            <TabsTrigger
               className={`${tabs === "add"
-                  ? "bg-black text-white rounded-md h-full flex items-center justify-center"
-                  : "h-full flex items-center justify-center"
+                ? "bg-black text-white rounded-md h-full flex items-center justify-center"
+                : "h-full flex items-center justify-center"
                 }`}
               value="add"
             >
               Yangi lid qo'shish
             </TabsTrigger>
+            <TabsTrigger
+              className={`${tabs === "list"
+                ? "bg-black text-white rounded-md h-full flex items-center justify-center"
+                : "h-full flex items-center justify-center"
+                }`}
+              value="list"
+            >
+              Lidlar ro'yxati
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="list">
+          <TabsContent value="list" onClick={() => setOpenChengeStatus(false)}>
             <Card>
               <CardHeader>
                 <CardTitle>Lidlar ro'yxati</CardTitle>
@@ -711,11 +822,11 @@ export default function LeadsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Barchasi</SelectItem>
-                      <SelectItem value="Yangi">Yangi</SelectItem>
-                      <SelectItem value="Qiziqgan">Qiziqgan</SelectItem>
-                      <SelectItem value="Kutilmoqda">Kutilmoqda</SelectItem>
-                      <SelectItem value="Qayta aloqa">Qayta aloqa</SelectItem>
-                      <SelectItem value="Yopilgan">Yopilgan</SelectItem>
+                      {statusData.map((status) => (
+                        <SelectItem value={status.name}>
+                          {status.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -734,14 +845,73 @@ export default function LeadsPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredLeads.map((lead, index) => (
-                      <TableRow key={lead.id} onClick={() => OpenModal(lead.id)}>
+                      <TableRow key={lead.id} onClick={() => { OpenModal(lead.id), setOpenChengeStatus(false), setOpenChengeCourse(null) }}>
                         <TableCell className="font-medium">{lead.name}</TableCell>
                         <TableCell>{lead.phone}</TableCell>
-                        <TableCell>
-                          <Badge variant="default" className={statusColors[lead.status]}>{lead.status}</Badge>
+                        <TableCell className="relative" onClick={(e) => { e.stopPropagation(), setOpenChengeStatus(false) }}>
+                          <Badge
+                            variant="outline"
+                            className={`
+                              ${lead.status === "Kelib ketdi" ?
+                                StatusColors["KelibKetdi"] :
+                                lead.status === "O'qiyabdi" ?
+                                  StatusColors["Oqiyabdi"] : StatusColors[lead.status]}  cursor-pointer
+                            `}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setOpenChengeStatus(OpenChengeStatus !== lead.id ? lead.id : null)
+                            }}
+                          >
+                            {lead.status}
+                            {
+                              OpenChengeStatus === lead.id ? (
+                                <div className="p-3 text-black bg-white flex flex-col gap-2 rounded-lg border border-gray-300 absolute z-10 top-[50px] left-[10px]">
+                                  {
+                                    Status.map((status) => (
+                                      <h3
+                                        className={`
+                                      ${status === "O'qiyabdi" ?
+                                            StatusColors.Oqiyabdi :
+                                            status === "Kelib ketdi" ?
+                                              StatusColors.KelibKetdi :
+                                              StatusColors[status]}  rounded-md px-2 py-[2px] text-white cursor-pointer`}
+                                        onClick={() => handleChengeStatus(status, lead.name)}
+                                      >
+                                        {status}
+                                      </h3>
+                                    ))
+                                  }
+                                </div>
+                              ) : ""
+                            }
+                          </Badge>
                         </TableCell>
                         <TableCell>{lead.source}</TableCell>
-                        <TableCell>{lead.course}</TableCell>
+                        <TableCell
+                          onClick={(e) => (e.stopPropagation(), setOpenChengeCourse(OpenChengeCourse !== lead.id ? lead.id : null))}
+                          className="relative"
+                        >
+                          <div className="flex items-center gap-1 p-[2px] pl-[5px] rounded-lg hover:bg-gray-200 cursor-pointer">
+                            {lead.course}
+                            {OpenChengeCourse !== lead.id ? <FaChevronDown /> : <FaChevronRight />}
+                          </div>
+                          {
+                            OpenChengeCourse === lead.id ? (
+                              <div className="p-3 text-black bg-white flex flex-col gap-2 rounded-lg border border-gray-300 absolute z-10 top-[50px] left-[10px]">
+                                {
+                                  GetCourse.map((course) => (
+                                    <h3
+                                      onClick={() => handleChengeCourse(course.name, lead.name)}
+                                      className="rounded-md px-2 py-[2px] cursor-pointer hover:bg-gray-200"
+                                    >
+                                      {course.name}
+                                    </h3>
+                                  ))
+                                }
+                              </div>
+                            ) : ""
+                          }
+                        </TableCell>
                         <TableCell>{lead.time}</TableCell>
                         <TableCell>{lead.date}</TableCell>
                         <TableCell>
@@ -764,7 +934,7 @@ export default function LeadsPage() {
                               variant="red"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                handleDeleteLead(lead.name);
+                                toggleDelateLead(lead.name);
                               }}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
@@ -786,7 +956,7 @@ export default function LeadsPage() {
                 <CardDescription>Yangi lid ma'lumotlarini kiriting</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Ism</Label>
@@ -797,32 +967,20 @@ export default function LeadsPage() {
                       <Input id="phone" name="phone" value={newLead.phone} placeholder="+998" onChange={handlePhoneChange} required />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select onValueChange={handleStatusChange} defaultValue={newLead.status}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Status tanlang" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Yangi">Yangi</SelectItem>
-                          <SelectItem value="Qiziqgan">Qiziqgan</SelectItem>
-                          <SelectItem value="Kutilmoqda">Kutilmoqda</SelectItem>
-                          <SelectItem value="Qayta aloqa">Qayta aloqa</SelectItem>
-                          <SelectItem value="Yopilgan">Yopilgan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="source">Manba</Label>
                       <Select onValueChange={handleSourceChange} defaultValue={newLead.source}>
                         <SelectTrigger>
                           <SelectValue placeholder="Manba tanlang" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Veb-sayt">Veb-sayt</SelectItem>
-                          <SelectItem value="Instagram">Instagram</SelectItem>
-                          <SelectItem value="Facebook">Facebook</SelectItem>
-                          <SelectItem value="Google">Google</SelectItem>
-                          <SelectItem value="Tavsiya">Tavsiya</SelectItem>
+                          {
+                            sourceData.map((value) => (
+                              <SelectItem value={value.name}>
+                                {value.name}
+                              </SelectItem>
+                            )
+                            )
+                          }
                         </SelectContent>
                       </Select>
                     </div>
@@ -833,17 +991,21 @@ export default function LeadsPage() {
                           <SelectValue placeholder="Kurs tanlang" />
                         </SelectTrigger>
                         <SelectContent>
-                          {courses.map((course) => (
-                            <SelectItem key={course} value={course}>
-                              {course}
-                            </SelectItem>
-                          ))}
+                          {
+                            GetCourse.map((item) => {
+                              return (
+                                <SelectItem key={item} value={item.name}>
+                                  {item.name}
+                                </SelectItem>
+                              )
+                            })
+                          }
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="time">Vaqt</Label>
-                      <Select  onValueChange={handleTimeChange} defaultValue={newLead.time}>
+                      <Select onValueChange={handleTimeChange} defaultValue={newLead.time}>
                         <SelectTrigger>
                           <SelectValue placeholder="Vaqt tanlang" />
                         </SelectTrigger>
@@ -858,12 +1020,12 @@ export default function LeadsPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="notes">Qo'shimcha ma'lumot</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Izoh</Label>
                       <Input id="notes" name="notes" value={newLead.notes} placeholder="Ma'lumot (ixtiyoriy)" onChange={handleNotesChange} />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full">
+                  <Button onClick={handleSubmit} className="w-full">
                     <UserPlus className="w-4 h-4 mr-2" />
                     Yangi lid qo'shish
                   </Button>

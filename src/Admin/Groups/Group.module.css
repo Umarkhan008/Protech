@@ -76,7 +76,7 @@
 }
 
 .groupAddButton {
-  padding: 20px 80px;
+  padding: 30px 60px;
   border-radius: 10px;
   background-color: #6c63ff;
   color: white;
@@ -308,4 +308,8 @@
 
 .noBtn:hover {
   background: #da190b;
+}
+
+.inputSearch::placeholder{
+  color: #8b8b8b !important;
 }

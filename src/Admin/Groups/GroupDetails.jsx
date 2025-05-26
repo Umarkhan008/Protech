@@ -42,6 +42,7 @@ import { CourseSidebar } from "../../components/ui/course-sidebar";
 
 import { cn } from "../../lib/utils";
 import { duration } from "@mui/material";
+import { PiArrowUDownLeftBold } from "react-icons/pi";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC94X37bt_vhaq5sFVOB_ANhZPuE6219Vo",
@@ -59,10 +60,10 @@ const analytics = getAnalytics(app);
 const database = getDatabase(app);
 
 const days = [
-  { label: "Toq kunlar" },
-  { label: "Juft kunlar" },
-  { label: "Dam olish kuni" },
+  { label: "Toq kunlar (SPSH)" },
+  { label: "Juft kunlar (DCHJ)" },
   { label: "Har kuni" },
+  { label: "Maxsus kunlar" },
 ];
 
 const daysOfWeek = [
@@ -93,6 +94,15 @@ function GroupDetails() {
   const [groupsData, setGroupsData] = useState([]);
   const [newGroupName, setNewGroupName] = useState("");
   const [newPrice, setNewPrice] = useState("");
+
+  const [AddGroup, setAddGroup] = useState({
+    groupName: "",
+    courses: "",
+    teachers: "",
+    rooms: "",
+    duration: "",
+    selectedDays: [],
+  })
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [students, setStudents] = useState([]);
@@ -457,6 +467,12 @@ function GroupDetails() {
     setIsOpen(!isOpen);
   };
 
+  const handleSelectDays = (value) => {
+    value === "Toq kunlar (SPSH)" ? setAddGroup({ ...AddGroup, selectedDays: ["Se", "Pay", "Shan"] }) :
+    value === "Juft kunlar (DCHJ)" ? setAddGroup({ ...AddGroup, selectedDays: ["Du", "Chor", "Ju"] }) :
+    value === "Har kuni" ? setAddGroup({ ...AddGroup, selectedDays: ["Du", "Se", "Chor", "Pay", "Ju", "Shan", "Yak"] }) :
+    value === "Maxsus kunlar" ? setAddGroup({ ...AddGroup, selectedDays: "Maxsus kunlar" }) : null
+  }
 
   if (!groupInfo) {
     return <div>Loading...</div>; // Ma'lumotlar yuklanayotganida yuklanishni ko'rsatish
@@ -491,7 +507,7 @@ function GroupDetails() {
           <SidebarProvider>
             {isOpen && (
               <div
-                className="fixed w-full  h-[100vh] z-30  inset-0 backdrop-blur-sm transition-all duration-900 ease-in-out"
+                className="fixed w-full h-[100vh] z-30  inset-0 backdrop-blur-[2px] bg-black/50 transition-all duration-900 ease-in-out"
                 onClick={() => {
                   setOpen(false);
                   toggleSidebar();
@@ -507,7 +523,7 @@ function GroupDetails() {
               collapsible="none"
             >
               <SidebarHeader className="flex  items-center justify-between border border-gray-300 p-4">
-                <h2 className="text-xl font-semibold">Yangi kurs qo'shish</h2>
+                <h2 className="text-xl font-semibold">Yangi guruh qo'shish</h2>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -528,72 +544,73 @@ function GroupDetails() {
                   className="space-y-6 p-6 text-left "
                 >
                   <div className="space-y-6">
-                    <Label htmlFor="courseName">Kurs nomi</Label>
+                    <Label htmlFor="courseName">Guruh nomi</Label>
                     <Input
                       id="courseName"
-                      placeholder="Kurs nomini kiriting"
-                      className="w-full"
-                      value={newGroupName} // Controlled input
-                      onChange={handleInputChange}
-                      required
+                      placeholder="Guruh nomini kiriting"
+                      className={`w-full ${style.inputSearch}`}
+                      onChange={(e) => setAddGroup({ ...AddGroup, groupName: e.target.value })}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="courseSelect">Kursni tanlash</Label>
                     <SelectReact
-                      value={selectedOptions.courses}
-                      onChange={(selectedOption) =>
-                        handleSelectChange(selectedOption, { name: "courses" })
-                      }
+                      onChange={(e) => setAddGroup({ ...AddGroup, courses: e.value })}
                       options={coursesData}
+                      placeholder="Kursni tanlang"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="teacher">O'qituvchi</Label>
-                    <SelectReact
+                    <SelectReact  
                       value={selectedOptions.teachers}
                       onChange={(selectedOption) =>
                         handleSelectChange(selectedOption, { name: "teachers" })
                       }
                       options={teachersData}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Narxi</Label>
-                    <Input
-                      id="price"
-                      placeholder="Narxini kiriting"
-                      className="w-full"
-                      value={newPrice}
-                      onChange={(e) => setNewPrice(e.target.value)}
-                      required
+                      placeholder="O'qitchini tanlang"
                     />
                   </div>
 
                   <div className="space-y-3">
                     <Label>Dars kunlari</Label>
                     <div className="flex flex-wrap gap-3">
-                      {daysOfWeek.map((day) => (
-                        <div
-                          key={day.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={day.id}
-                            checked={selectedDays.includes(day.id)}
-                            onCheckedChange={() => handleDayChange(day.id)}
-                          />
-                          <Label
-                            htmlFor={day.id}
-                            className="text-sm font-normal cursor-pointer"
+                      {AddGroup.selectedDays !== "Maxsus kunlar" ? <SelectReact
+                        className="w-full"
+                        placeholder="Dars kunlarini tanlang"
+                        options={days.map((day) => ({ value: day.label, label: day.label }))}
+                        onChange={(e) => handleSelectDays(e.value)}
+                      /> :
+                        <div className="w-full flex justify-start flex-col gap-3">
+                          <div
+                            className="cursor-pointer w-[30px] h-[30px] rounded-full hover:bg-gray-200 flex justify-center items-center"
+                            onClick={() => setAddGroup({ ...AddGroup, selectedDays: [] })}
                           >
-                            {day.label}
-                          </Label>
+                            <PiArrowUDownLeftBold className="text-lg" />
+                          </div>
+                          {
+                            daysOfWeek.map((day) => (
+                              <div
+                                key={day.id}
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox
+                                  id={day.id}
+                                  checked={selectedDays.includes(day.id)}
+                                  onCheckedChange={() => handleDayChange(day.id)}
+                                />
+                                <Label
+                                  htmlFor={day.id}
+                                  className="text-sm font-normal cursor-pointer"
+                                >
+                                  {day.label}
+                                </Label>
+                              </div>
+                            ))}
                         </div>
-                      ))}
+                      }
                     </div>
                   </div>
 
@@ -631,6 +648,7 @@ function GroupDetails() {
                         handleSelectChange(selectedOption, { name: "rooms" })
                       }
                       options={roomsData}
+                      placeholder="Xona tanlang"
                     />
                   </div>
 
@@ -649,15 +667,15 @@ function GroupDetails() {
               </SidebarContent>
             </Sidebar>
           </SidebarProvider>
-          <button
+          <Button
             className={style.groupAddButton}
             onClick={() => {
               setOpen(true);
               toggleSidebar();
             }}
           >
-            Add Group
-          </button>
+            Guruh qo'shish
+          </Button>
         </div>
         <Card className="col-[1/4] row-[4/11] border-slate-200 rounded-[5px]">
           {groupInfo && (
@@ -784,57 +802,58 @@ function GroupDetails() {
                     const isPastDate = new Date(currentDate) < new Date(today);
                     const isNotToday = currentDate !== today;
 
-                    return (
-                      <div key={dateIndex} className={style.attendanceCell}>
-                        <div
-                          className={`${style.circle} ${attendance === true
-                              ? style.present
-                              : attendance === false
-                                ? style.absent
-                                : ""
-                            }`}
-                        >
-                          <div className={style.hoverButtons}>
-                            <button
-                              className={style.yesBtn}
-                              onClick={() =>
-                                handleAttendance(studentIndex, dateIndex, student, true)
-                              }
-                              disabled={isPastDate || isNotToday}
-                            >
-                              Ha
-                            </button>
-                            <button
-                              className={style.noBtn}
-                              onClick={() =>
-                                handleAttendance(studentIndex, dateIndex, student, false)
-                              }
-                              disabled={isPastDate || isNotToday}
-                            >
-                              Yo'q
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+          return (
+            <div key={dateIndex} className={style.attendanceCell}>
+              <div
+                className={`${style.circle} ${
+                  attendance === true
+                    ? style.present
+                    : attendance === false
+                    ? style.absent
+                    : ""
+                }`}
+              >
+                <div className={style.hoverButtons}>
+                  <button
+                    className={style.yesBtn}
+                    onClick={() =>
+                      handleAttendance(studentIndex, dateIndex, student, true)
+                    }
+                    disabled={isPastDate || isNotToday}
+                  >
+                    Ha
+                  </button>
+                  <button
+                    className={style.noBtn}
+                    onClick={() =>
+                      handleAttendance(studentIndex, dateIndex, student, false)
+                    }
+                    disabled={isPastDate || isNotToday}
+                  >
+                    Yo'q
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  })}
+</div>
 
         </div>
       </div>
       <div>
         {isEditModalOpen && (
 
-          <div
-            className="fixed w-full  h-[100vh] z-30  inset-0 backdrop-blur-sm transition-all duration-900 ease-in-out"
-            onClick={() => {
-              closeEditModal()
-            }}
-          ></div>
-        )}
+      <div
+      className="fixed w-full  h-[100vh] z-30  inset-0 backdrop-blur-sm transition-all duration-900 ease-in-out"
+      onClick={() => {
+        closeEditModal()
+        }}
+              ></div>
+            )}
 
         {/* Modalning o'ngdan chiqishi */}
         <Sidebar

@@ -51,3 +51,7 @@
     cursor: pointer;
     padding-bottom: 9px;
 }
+
+.inputSearch::placeholder{
+    color: #8b8b8b !important;
+}

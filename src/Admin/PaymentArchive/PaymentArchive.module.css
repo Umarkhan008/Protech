@@ -1,0 +1,20 @@
+.inputSearch::placeholder{
+    color: #8b8b8b !important;
+}
+
+.cardStyle{
+    z-index: 2;
+    position: relative;
+    border-color: #8b8b8b;
+}
+
+.cardStyle::after{
+    content: "";
+    position: absolute;
+    width: 24px;
+    height: 1px;
+    background: #a2a7b1;
+    left: -26px;
+    z-index: -1;
+
+}

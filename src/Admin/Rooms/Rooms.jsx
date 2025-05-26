@@ -27,7 +27,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app); 
+const analytics = getAnalytics(app);
 const database = getDatabase(app);
 
 import {
@@ -60,7 +60,7 @@ const Rooms = () => {
     name: "",
     people: ""
   });
-  
+
   const [chengeId, setChengeId] = useState(Number);
   const [delateId, setDelateId] = useState(Number);
 
@@ -84,7 +84,7 @@ const Rooms = () => {
   const handleAddRoom = () => {
     if (addRoom.name === "" || addRoom.people === "") {
       alert("Iltimos barcha maydonlarni to'ldiring!");
-      return;      
+      return;
     }
 
     set(ref(database, `Rooms/Room${TakeRooms.length + 1}`), {
@@ -101,13 +101,16 @@ const Rooms = () => {
       });
   }
 
-  const handleChengeRoom = () => {
-    const firstRoom = TakeRooms.find(room => room.id === chengeId);
-    const foundKey = TakeKeys.find((key, index) => TakeRooms[index]?.id?.toString() === chengeId.toString());
+  const chengeRoom = (id) => {
+    const firstRoom = TakeRooms.find(room => room.id === id);
 
     if (firstRoom) {
-      setaddRoom({ ...firstRoom, nam: firstRoom.name, people: firstRoom.people });
+      setChengeRoom({ name: firstRoom.name, people: firstRoom.people });
     }
+  }
+
+  const handleChengeRoom = () => {
+    const foundKey = TakeKeys.find((key, index) => TakeRooms[index]?.id?.toString() === chengeId.toString());
 
     if (foundKey) {
       set(ref(database, `Rooms/${foundKey}`), {
@@ -116,6 +119,7 @@ const Rooms = () => {
         people: ChengeRoom.people
       })
         .then(() => {
+          setChengeOpen(false)
           alert("Room updated successfully!");
           setChengeRoom({ name: "", people: "" });
         })
@@ -170,10 +174,10 @@ const Rooms = () => {
 
       <SidebarProvider>
         {(isOpen || ChengeOpen) && (
-          <div
+          <div2
             className="fixed w-full h-[100vh] bg-black/50 backdrop-blur-[2px] z-30 inset-0 transition-all duration-900 ease-in-out"
             onClick={toggleSidebar}
-          ></div>
+          ></div2>
         )}
         <Sidebar
           className={`fixed inset-y-0 right-0 z-50 w-[400px] border-l border-gray-300 bg-white transition-transform duration-300 ease-in-out ${isOpen || ChengeOpen ? "translate-x-0" : "translate-x-full"}`}
@@ -202,7 +206,8 @@ const Rooms = () => {
                 <Input
                   id="courseSelect"
                   type="text"
-                  placeholder="Kurs nomi"
+                  className={`${style.inputSearch}`}
+                  placeholder="Xona nomi"
                   value={isOpen ? addRoom.name : ChengeOpen ? ChengeRoom.name : ""}
                   onChange={(e) => {
                     isOpen ? setaddRoom((prevState) => ({
@@ -220,7 +225,8 @@ const Rooms = () => {
                 <Label htmlFor="coursePrice" className="text-xs text-gray-500">Xona sig'imi</Label>
                 <Input
                   id="coursePrice"
-                  placeholder="Narxni kiriting"
+                  placeholder="Xona sigimi"
+                  className={`${style.inputSearch}`}
                   type="text"
                   value={isOpen ? addRoom.people : ChengeOpen ? ChengeRoom.people : ""}
                   onChange={(e) => {
@@ -306,7 +312,8 @@ const Rooms = () => {
                       className={`${style.icon}`}
                       onClick={() => {
                         setChengeOpen(true)
-                        setChengeId(room.id);
+                        chengeRoom(room.id);
+                        setChengeId(room.id)
                       }}
                     >
                       <GrEdit />

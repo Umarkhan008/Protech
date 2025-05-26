@@ -370,7 +370,7 @@ const Users = () => {
                         transition: "all 0.5s ease, background 0.3s ease, width 0.5s ease",
                     }}
                 >
-                    <nav className="flex justify-between pt-8 items-center p-6 rounded-lg">
+                    <nav className="flex justify-between pt-8 items-center p-6">
                         <h2 className="text-3xl font-normal">Xodimlar - {takeTeacher.length} ta</h2>
                         <div className="flex gap-4 items-center">
                             <Input
@@ -409,7 +409,7 @@ const Users = () => {
                             )
                         }
                     </div>
-                </div>
+                </div>2
             </div>
         </>
     );
