@@ -120,9 +120,7 @@ function Groups() {
   const [newStudentName, setNewStudentName] = useState("");
   const [newStudentNumber, setNewStudentNumber] = useState("");
   const [students, setStudents] = useState([]);
-  const [selectedDays, setSelectedDays] = useState([]);
-
-
+  const [selectedDays, setSelectedDays] = useState([]); 
 
   const getCurrentMonthDates = () => {
     const dates = [];

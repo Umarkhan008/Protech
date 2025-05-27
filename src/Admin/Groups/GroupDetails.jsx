@@ -94,6 +94,7 @@ function GroupDetails() {
   const [groupsData, setGroupsData] = useState([]);
   const [newGroupName, setNewGroupName] = useState("");
   const [newPrice, setNewPrice] = useState("");
+  const [LessonTime, setLessonTime] = useState([])
 
   const [AddGroup, setAddGroup] = useState({
     groupName: "",
@@ -269,12 +270,6 @@ function GroupDetails() {
           newGroup.selectedDays.includes(day)
         );
 
-
-
-
-
-
-
         // Vaqt to'qnashuvini tekshirish
         const hasTimeConflict =
           (newGroupStartTime < groupEndTime && newGroupEndTime > groupStartTime);
@@ -424,6 +419,16 @@ function GroupDetails() {
     }
   }, [groupInfo]); // groupInfo o'zgarganida useEffect qayta ishlaydi
 
+
+  useEffect(() => {
+    const LessonTimeRef = ref(database, "LessonTimes");
+    onValue(LessonTimeRef, (snapshot) => {
+      const data = snapshot.val();
+      
+      setLessonTime(Object.values(data || {}));
+    }); 
+  }, [])
+  
   const [selectedDays, setSelectedDays] = useState([]);
 
   const handleDayChange = (day) => {
@@ -616,28 +621,12 @@ function GroupDetails() {
 
                   <div className="space-y-2">
                     <Label>Dars vaqti</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="relative">
-                        <Input
-                          type="time"
-                          className="w-full pl-10"
-                          value={startTime}
-                          onChange={(e) => setStartTime(e.target.value)}
-                          required
-                        />
-                        <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                      </div>
-                      <div className="relative">
-                        <Input
-                          type="time"
-                          className="w-full pl-10"
-                          value={endTime}
-                          onChange={(e) => setEndTime(e.target.value)}
-                          required
-                        />
-                        <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                      </div>
-                    </div>
+                    <SelectReact
+                      placeholder="Dars vaqti tanlang"
+                      className="w-full"
+                      options={LessonTime.map((time) => ({value: time, label: time}))}
+                      onChange={(e) => console.log(e.value)}
+                    />
                   </div>
 
                   <div className="space-y-2">
